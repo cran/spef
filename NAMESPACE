@@ -1,0 +1,9 @@
+# exportClasses(DataSetting, Zhang, Huang3, Huang4, Huang4IC, Huang4CIC, HuangScen2)
+
+export(PanelSurv, is.PanelSurv)
+export(panelReg)
+# export(simu)
+
+S3method(plot, PanelSurv)
+S3method(print, panelReg)
+S3method(plot, panelReg)

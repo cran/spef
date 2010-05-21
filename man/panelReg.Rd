@@ -1,0 +1,142 @@
+\name{panelReg}
+\alias{panelReg}
+\title{Fits Semiparametric Regression Models for Panel Count Survival Data}
+\description{
+  Fits an proportional means model:
+  \eqn{\Lambda (t; X_i) = E[N_i(t)|X_i] = \Lambda (t)\exp (X_i ' \beta ),}
+  where \eqn{\beta} is a \eqn{p \times 1} vector of covariate
+  coefficient and \eqn{\Lambda(\cdot)} is a completely unspecified
+  baseline mean function.
+  
+  Estimating procedures include: Wang-Yan's augmented estimating
+  equations (AEE, AEEX), Huang-Wang-Zhang's method (HWZ), Zhang's
+  maximum pseudolikelihood (MPL), and
+  Sun-Wei's method (SW).
+}
+\usage{
+panelReg(formula, data, method=c("AEE", "AEEX", "HWZ", "MPL", "SW"),
+         se=c("NULL", "Bootstrap", "Impute", "Sandwich"), control=list())
+}
+\arguments{
+  \item{formula}{
+    A formula object, with the response on the left of a
+    '~' operator, and the terms on the right. The response must be a
+    panel count survival object as returned by function
+    \code{PanelSurv}.
+  }
+  \item{data}{
+    A data.frame in which to interpret the variables named in
+    the \code{formula}. Three variables including subjects' id,
+    observation times, and number of new events since last
+    observation time are required to feed into function
+    \code{PanelSurv} as response. At least one covariate variable
+    is required.
+  }
+  \item{method}{
+    Fitting method. See \sQuote{Details}.
+  }
+  \item{se}{
+    Standard error estimation method. See \sQuote{Details}.
+  }
+  \item{control}{
+    A list of control parameters. See \sQuote{Details}.
+  }
+}
+\details{
+  Some assumptions details about the observation times and censoring
+  time need clarification. Three possible scenarios of observation
+  times are considered: 1) independent observation times -- the
+  observation times are independent of the underlying recurrent event
+  process; 2) conditional independent observation times -- the
+  observation times are independent of the event process given
+  observed covariates; 3) informative observation times -- after
+  conditioning on observed covariates, the observation times and the
+  event process are still dependent through an unobserved
+  multiplicative frailty. Similarly, the three scenarios apply to the
+  censoring time.
+  
+  Methods \code{"AEE"} and \code{AEEX} are the augmented estimationg
+  equation methods under conditional independent censoring and
+  informative censoring respectively. Both allow informative observation
+  times.
+
+  Method \code{"HWZ"} is Huang-Wang-Zhang's method. It allows
+  information observation times and informative censoring time.
+
+  Method \code{"MPL"} is Zhang's maximum pseudolikelihood method. It
+  assumes conditional independent observation times and censoring time.
+  
+  Method \code{"SW"} is Sun-Wei's method. It assumes independent
+  observation times and censoring time.
+
+  For standard errors estimation method:
+  
+  \code{"Bootstrap"} works with all fitting methods; \code{"Impute"} is
+  the multiple imputation method that works with \code{"AEE"} and
+  \code{"AEEX"}; \code{"Sandwich"} is the robust sandwich estimation
+  method that works with \code{"AEE"}, \code{"AEEX"} and \code{"SW"}.
+
+
+  The \code{control} argument is a list that can supply any of the
+  following components:
+  \describe{
+    \item{\code{betaInit}:}{Object of class \code{"numeric"},
+      initial value for covariate coefficient, default \code{0}.}
+    \item{\code{interval}:}{Object of class \code{"numeric"},
+      initial search interval for solving \code{beta}, default
+      \code{(-5, 5)}.}
+    \item{\code{maxIter}:}{Object of class \code{"numeric"}, maximum
+      iteration allowed, default \code{500}.}
+    \item{\code{absTol}:}{Object of class \code{"numeric"}, absolute
+      tolerance, default \code{1e-6}.}
+    \item{\code{relTol}:}{Object of class \code{"numeric"}, relative
+      tolerance \code{1e-6}.}
+    \item{\code{a}:}{Object of class \code{"numeric"}, a tune parameter,
+      default \code{0.1}. In the case of gamma frailty, \code{"a"}
+      corresponds to the value of both shape and rate parameters.}
+    \item{\code{unitWeight}:}{Object of class \code{"logical"}, if
+      \code{TRUE}, use unit weights for estimating equations, default
+      \code{TRUE}.}
+    \item{\code{R}:}{Object of class \code{"numeric"}, number of
+      bootstrap or imputation, default 30.}
+  }
+}
+\value{
+  An object of S3 class \code{"panelReg"} representing the fit. See
+  \code{panelReg.object} for details.
+}
+\references{
+  Sun, J. and Wei, L. J. (2000). Regression analysis of panel count
+  data with covariates-dependent observation and cesoring
+  times. \emph{Journal of the Royal Statistical Society, Series B:
+  Statistical Methodology}, \bold{62}(2):293--302.
+
+  Zhang, Y. (2002). A Semiparametric Pseudolikelihood Estimation Method
+  for Panel Count Data. \emph{Biometrika} \bold{89}(1), 39--48.
+
+  Huang, C., Wang, M., and Zhang, Y. (2006). Analysing panel count data
+  with informative observation times. \emph{Biometrika} \bold{93}(4), 763--776.
+  
+  Wang, X. and Yan, J. (2010). Augmented estimating equations for
+  semiparametric panel count regression with informative observation
+  times and censoring time. Submitted.
+}
+
+\seealso{
+  \code{\link{panelReg.object}}
+}
+\examples{
+\dontrun{
+# Fit the bladder tumor data set
+data <- blaTum
+formula <- PanelSurv(id, time, count) ~ num + size + treatment
+
+panelReg(formula, data, method="AEE", se="Sandwich")
+panelReg(formula, data, method="AEEX", se="Impute", control=list(a=0.1, R=30))
+panelReg(formula, data, method="HWZ", se="Bootstrap", control=list(R=30))
+panelReg(formula, data, method="SW", se="Bootstrap", control=list(R=30))
+}
+}
+\keyword{survival}
+%\keyword{panel count}
+
