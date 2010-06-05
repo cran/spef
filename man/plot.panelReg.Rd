@@ -4,31 +4,31 @@
   Plot an panelReg Object.
 }
 \description{
-  Plot the estimated coefficient function(s) from a fit
-  of Aalen's additive regression model.
+  Plot the estimated baseline mean function. If \code{"se"} is not
+  \code{"NULL"}, 95 percent point wise confidence interval is also ploted.
 }
 \usage{
-\method{plot}{panelReg}(x, se=TRUE, ...)
+\method{plot}{panelReg}(x, ...)
 }
 \arguments{
   \item{x}{
-    The result of a call to the \code{panelReg} function
+    The result of a call to the \code{panelReg} function.
   }
-  \item{se}{
-    If \code{TRUE}, standard error bands are included on the plot.
-  }
-  \item{\dots }{
+  \item{\dots}{
     Other graphical parameters such as line type, color, or axis labels.
   }
 }
 \examples{
+data(blaTum)
+
 # Plot the fit of bladder tumor data set
 formula <- PanelSurv(id, time, count) ~ num + size + treatment
 
-fit <- panelReg(formula, data=blaTum, method="AEE", se="Sandwich")
-fit
+fit1 <- panelReg(formula, data=blaTum, method="AEE", se="Sandwich")
+plot(fit1)
 
-plot(fit, se=TRUE)
+fit2 <- panelReg(formula, data=blaTum, method="MLs", se="NULL")
+plot(fit2)
 }
 \seealso{
   \code{\link{panelReg}}, \code{\link{panelReg.object}}.

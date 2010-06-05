@@ -9,7 +9,9 @@
 }
 \arguments{
   \item{beta}{a vector, estimated coefficients of the linear predictor.}
-  \item{baseline}{a step function, estimated cumulative baseline mean.}
+  \item{baseline}{a step function or spline function, estimated
+    cumulative baseline mean.}
+  \item{timeGrid}{a vector, ordered unique set of observation times.}
   \item{lambda}{a vector, estimated baseline mean for each interval}
   \item{convergence}{an integer code, \code{0} indicates successful
     convergence, error code \code{1} indicates that the iteration limit
@@ -17,7 +19,7 @@
   \item{iter}{an integer value, number of interations when stopped.}
   \item{betaSE}{a vector, estimated standard errors of beta.}
   \item{betaVar}{a matrix, estimated covariance matrix of beta.}
-  \item{baselineSE}{a step function, estimated standard error of
+  \item{baselineSE}{a vector, estimated standard error of
     cumulative baseline mean.}
 }
 \seealso{

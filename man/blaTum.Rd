@@ -30,12 +30,15 @@ blaTum
   with informative observation times. \emph{Biometrika}, \bold{93}(4):763--776.
 }
 \examples{
+# Load data set
+data(blaTum)
+
 # Plot bladder tumor data
 ggplot(blaTum, aes(time, id)) + geom_tile(aes(fill=count)) +
    facet_grid(treatment ~ ., scales="free_y", )
 
 # Fit a semiparametric regression model
-formula <- PanelSurv(id, time, count) ~ treatment + num + size
+formula <- PanelSurv(id, time, count) ~ num + size + treatment
 fit <- panelReg(formula, data=blaTum, method="AEE", se="Sandwich")
 fit
 }

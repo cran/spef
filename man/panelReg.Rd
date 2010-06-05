@@ -7,14 +7,16 @@
   where \eqn{\beta} is a \eqn{p \times 1} vector of covariate
   coefficient and \eqn{\Lambda(\cdot)} is a completely unspecified
   baseline mean function.
-  
+
   Estimating procedures include: Wang-Yan's augmented estimating
   equations (AEE, AEEX), Huang-Wang-Zhang's method (HWZ), Zhang's
-  maximum pseudolikelihood (MPL), and
-  Sun-Wei's method (SW).
+  maximum pseudolikelihood (MPL), Maximum pseudolikelihood with
+  I-Splines (MPLs), Maximum likelihood with I-Splines (MLs),
+  and Sun-Wei's method (SWa, SWb, SWc).
 }
 \usage{
-panelReg(formula, data, method=c("AEE", "AEEX", "HWZ", "MPL", "SW"),
+panelReg(formula, data,
+         method=c("AEE", "AEEX", "HWZ", "MPL", "MPLs", "MLs", "SWa", "SWb", "SWc"),
          se=c("NULL", "Bootstrap", "Impute", "Sandwich"), control=list())
 }
 \arguments{
@@ -54,27 +56,42 @@ panelReg(formula, data, method=c("AEE", "AEEX", "HWZ", "MPL", "SW"),
   event process are still dependent through an unobserved
   multiplicative frailty. Similarly, the three scenarios apply to the
   censoring time.
-  
-  Methods \code{"AEE"} and \code{AEEX} are the augmented estimationg
+
+  \code{"AEE"} and \code{AEEX} are the augmented estimationg
   equation methods under conditional independent censoring and
   informative censoring respectively. Both allow informative observation
   times.
 
-  Method \code{"HWZ"} is Huang-Wang-Zhang's method. It allows
-  information observation times and informative censoring time.
+  \code{"HWZ"} is Huang-Wang-Zhang's method. It allows both
+  information observation times and informative censoring time. It does
+  not need to specify the dependence structure or model the frailty.
 
-  Method \code{"MPL"} is Zhang's maximum pseudolikelihood method. It
-  assumes conditional independent observation times and censoring time.
-  
-  Method \code{"SW"} is Sun-Wei's method. It assumes independent
-  observation times and censoring time.
+  \code{"MPL"} and \code{"MPLs"} are maximum pseudolikelihood
+  methods, with nonparametric and monotone spline estimates of the baseline
+  mean function respectively. They assume conditional independent
+  observation times and censoring time. The underlying event process
+  is assumed to be Poisson, and the within subjects dependence is ignored.
+
+  \code{"MLs"} is maximum likelihood method with monotone splines
+  estimates of the baseline mean function. It assumes conditional
+  independent observation times and censoring time, and a Poisson
+  underlying event process.
+
+  \code{"SWa"}, \code{"SWb"} and \code{"SWc"} are Sun-Wei's
+  methods. The first assumes independent observation times and censoring
+  time. The second assumes conditional independent observation times but
+  independent censoring time. The third assumes conditional independent
+  observation times and censoring time. All three variates work on
+  centered covariates and avoid estimating the baseline mean.
+
 
   For standard errors estimation method:
-  
+
+  \code{"NULL"} means do not calculate standard errors;
   \code{"Bootstrap"} works with all fitting methods; \code{"Impute"} is
   the multiple imputation method that works with \code{"AEE"} and
   \code{"AEEX"}; \code{"Sandwich"} is the robust sandwich estimation
-  method that works with \code{"AEE"}, \code{"AEEX"} and \code{"SW"}.
+  method that works with \code{"AEE"} and \code{"AEEX"}.
 
 
   The \code{control} argument is a list that can supply any of the
@@ -86,17 +103,15 @@ panelReg(formula, data, method=c("AEE", "AEEX", "HWZ", "MPL", "SW"),
       initial search interval for solving \code{beta}, default
       \code{(-5, 5)}.}
     \item{\code{maxIter}:}{Object of class \code{"numeric"}, maximum
-      iteration allowed, default \code{500}.}
+      iteration allowed, default \code{500} for \code{"AEEX"} and
+      \code{"HWZ"}, \code{150} for others.}
     \item{\code{absTol}:}{Object of class \code{"numeric"}, absolute
       tolerance, default \code{1e-6}.}
     \item{\code{relTol}:}{Object of class \code{"numeric"}, relative
-      tolerance \code{1e-6}.}
+      tolerance, default \code{1e-6}.}
     \item{\code{a}:}{Object of class \code{"numeric"}, a tune parameter,
       default \code{0.1}. In the case of gamma frailty, \code{"a"}
       corresponds to the value of both shape and rate parameters.}
-    \item{\code{unitWeight}:}{Object of class \code{"logical"}, if
-      \code{TRUE}, use unit weights for estimating equations, default
-      \code{TRUE}.}
     \item{\code{R}:}{Object of class \code{"numeric"}, number of
       bootstrap or imputation, default 30.}
   }
@@ -111,15 +126,23 @@ panelReg(formula, data, method=c("AEE", "AEEX", "HWZ", "MPL", "SW"),
   times. \emph{Journal of the Royal Statistical Society, Series B:
   Statistical Methodology}, \bold{62}(2):293--302.
 
-  Zhang, Y. (2002). A Semiparametric Pseudolikelihood Estimation Method
-  for Panel Count Data. \emph{Biometrika} \bold{89}(1), 39--48.
+  Zhang, Y. (2002). A Semiparametric pseudolikelihood estimation method
+  for panel count data. \emph{Biometrika} \bold{89}(1), 39--48.
 
   Huang, C., Wang, M., and Zhang, Y. (2006). Analysing panel count data
-  with informative observation times. \emph{Biometrika} \bold{93}(4), 763--776.
-  
+  with informative observation times. \emph{Biometrika} \bold{93}(4),
+  763--776.
+
+  Lu, M., Zhang, Y., and Huang, J. (2007). Estimation of the mean
+  function with panel count data using monotone polynomial
+  splines. \emph{Biometrika} \bold{94}(3), 705--718.
+
   Wang, X. and Yan, J. (2010). Augmented estimating equations for
   semiparametric panel count regression with informative observation
   times and censoring time. Submitted.
+
+  Wang, X. and Yan, J. (2010), Semiparametric regressions for panel
+  count survival data. In preparation.
 }
 
 \seealso{
@@ -127,14 +150,16 @@ panelReg(formula, data, method=c("AEE", "AEEX", "HWZ", "MPL", "SW"),
 }
 \examples{
 \dontrun{
+data(blaTum)
+
 # Fit the bladder tumor data set
-data <- blaTum
 formula <- PanelSurv(id, time, count) ~ num + size + treatment
 
-panelReg(formula, data, method="AEE", se="Sandwich")
-panelReg(formula, data, method="AEEX", se="Impute", control=list(a=0.1, R=30))
-panelReg(formula, data, method="HWZ", se="Bootstrap", control=list(R=30))
-panelReg(formula, data, method="SW", se="Bootstrap", control=list(R=30))
+panelReg(formula, data=blaTum, method="AEE", se="Sandwich")
+panelReg(formula, data=blaTum, method="AEEX", se="Impute", control=list(a=0.1, R=30))
+panelReg(formula, data=blaTum, method="HWZ", se="Bootstrap", control=list(R=30))
+panelReg(formula, data=blaTum, method="MLs", se="NULL")
+panelReg(formula, data=blaTum, method="SWa", se="Bootstrap", control=list(R=30))
 }
 }
 \keyword{survival}

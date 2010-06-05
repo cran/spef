@@ -26,11 +26,12 @@ PanelSurv(ID, time, count)
 %}
 \value{
   An object of S3 class \code{"PanelSurv"}.
-  \item{df}{a data frame with three input variables as columns.}
-  \item{ID}{unique ID for each observation subject.}
-  \item{timeGrid}{the union of observation time for all subjects.}
-  \item{panelMatrix}{survival panel count data in matrix form, with row
-    corresponding subject and column corresponding observation time.}
+  \item{psDF}{a data frame, part of original input data frame with variable "ID", "time"
+    and "count".}
+  \item{timeGrid}{ordered distinct observation times in the set of all
+    observation times.}
+  \item{panelMatrix}{a matrix representation of panel count data, one
+    row per subject, one column per time point in \code{"timeGrid"}.}
 
   In the case of \code{is.PanelSurv}, a logical value \code{TRUE} if
   \code{x} inherits from class \code{"PanelSurv"}, otherwise an \code{FALSE}.
@@ -43,6 +44,8 @@ PanelSurv(ID, time, count)
 
 \seealso{\code{\link{panelReg}}}
 \examples{
+data(blaTum)
+
 response <- with(blaTum, PanelSurv(id, time, count))
 is.PanelSurv(response)
 plot(response)

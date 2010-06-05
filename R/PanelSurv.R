@@ -17,8 +17,8 @@ PanelSurv <- function(ID, time, count) {
         panelMatrix[i, which(timeGrid %in% time[rowSet])] <- count[rowSet]
     }
 
-    ps <- list(df=data.frame(ID=ID, time=time, count=count),
-               ID=uniqueID, timeGrid=timeGrid, panelMatrix=panelMatrix)
+    ps <- list(psDF=data.frame(ID=ID, time=time, count=count),
+               timeGrid=timeGrid, panelMatrix=panelMatrix)
     class(ps) <- "PanelSurv"
     ps
 }
@@ -26,5 +26,8 @@ PanelSurv <- function(ID, time, count) {
 is.PanelSurv <- function(x) inherits(x, "PanelSurv")
 
 plot.PanelSurv <- function(x, ...) {
-    ggplot(x$df, aes(time, ID)) + geom_tile(aes(fill=count))
+    ## time <- x$df$time
+    ## ID <- x$df$ID
+    ## count <- x$df$count
+    ggplot(x$psDF, aes(time, ID)) + geom_tile(aes(fill=count))
 }
