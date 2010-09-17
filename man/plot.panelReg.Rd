@@ -1,11 +1,12 @@
 \name{plot.panelReg}
 \alias{plot.panelReg}
 \title{
-  Plot an panelReg Object.
+  Plot a panelReg Object.
 }
 \description{
-  Plot the estimated baseline mean function. If \code{"se"} is not
-  \code{"NULL"}, 95 percent point wise confidence interval is also ploted.
+  Plot the estimated baseline mean function. If \code{"se"} option of
+  \code{panelReg} is not \code{"NULL"}, 95 percent point wise confidence
+  interval is also ploted.
 }
 \usage{
 \method{plot}{panelReg}(x, ...)

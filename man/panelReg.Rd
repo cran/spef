@@ -140,9 +140,9 @@ panelReg(formula, data,
   Wang, X. and Yan, J. (2010). Augmented estimating equations for
   semiparametric panel count regression with informative observation
   times and censoring time. Submitted.
-
-  Wang, X. and Yan, J. (2010), Semiparametric regressions for panel
-  count survival data. In preparation.
+  
+  Wang, X. and Yan, J. (2010). Fitting semiparametric regressions for panel
+  count survival data with an R package spef. Submitted.
 }
 
 \seealso{

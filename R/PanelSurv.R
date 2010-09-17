@@ -26,8 +26,5 @@ PanelSurv <- function(ID, time, count) {
 is.PanelSurv <- function(x) inherits(x, "PanelSurv")
 
 plot.PanelSurv <- function(x, ...) {
-    ## time <- x$df$time
-    ## ID <- x$df$ID
-    ## count <- x$df$count
     ggplot(x$psDF, aes(time, ID)) + geom_tile(aes(fill=count))
 }

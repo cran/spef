@@ -99,7 +99,7 @@ doPanelFit.AEEX <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
     N <- nrow(panelMatrix)
     K <- ncol(panelMatrix)
 
-    eStep <- function(lambda) {
+    eStep <- function(lambda, a) {
         e <- matrix(0, N, K)
 
         for (i in 1:N) {
@@ -113,8 +113,8 @@ doPanelFit.AEEX <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
 
             if (tail(end, 1) < K) {
                 sq <- seq(tail(end, 1) + 1, K)
-                e[i, sq] <- (sum(panelMatrix[i, end]) + engine@a) * lambda[sq] /
-                    (sum(lambda[-sq]) + engine@a)
+                e[i, sq] <- (sum(panelMatrix[i, end]) + a) * lambda[sq] /
+                    (sum(lambda[-sq]) + a)
             }
         }
         e
@@ -153,10 +153,13 @@ doPanelFit.AEEX <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
         }
     }
 
+    a <- engine@a
+
+    # Iteration
     convergence <- 1
     sRes <- sStep(f, engine@betaInit, e)
     for (i in 2:engine@maxIter) {
-        e <- eStep(sRes$lambda)
+        e <- eStep(sRes$lambda, a)
 
         betaPre <- sRes$beta
         sRes <- sStep(f, sRes$beta, e)
@@ -711,8 +714,12 @@ doPanelFit.Engine.Bootstrap <- function(DF, panelMatrix, timeGrid, X, engine, st
     betaSE <- sqrt(diag(as.matrix(betaVar)))
     baselineSE <- sd(baselineMatrix[converged, ], na.rm=TRUE)
 
+    # 2.5% and 97.5% quantiles of baseline bootstrap estimates, 2*K
+    baselineQT <- apply(baselineMatrix[converged, ], 2, quantile,
+                        probs=c(0.025, 0.975), na.rm=TRUE, names=FALSE)
+
     c(res, list(betaSE=betaSE, betaVar=betaVar,
-                baselineSE=baselineSE, R=length(converged)))
+                baselineSE=baselineSE, baselineQT=baselineQT, R=length(converged)))
 }
 
 ##############################################################################
@@ -1160,7 +1167,13 @@ panelReg <- function(formula, data,
     # Combine respones data frame and covariate data frame (remove intercept column)
     # Multiple rows per subject
     formula[[2]] <- NULL
-    DF <- cbind(obj$psDF, model.matrix(formula, data)[, -1])
+
+    if (formula == ~ 1) {
+        DF <- cbind(obj$psDF, zero=0)
+    } else {
+        DF <- cbind(obj$psDF, model.matrix(formula, data))[, -4]
+    }
+
     DF <- DF[order(DF$ID, DF$time), ]
 
     # Design matrix, one row per subject

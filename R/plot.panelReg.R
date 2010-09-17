@@ -16,8 +16,12 @@ doPanelFitPlot.stepfun <- function(baseline, timeGrid, baselineSE, ...) {
 ##############################################################################
 doPanelFitPlot.stepfun.se <- function(baseline, timeGrid, baselineSE, ...) {
     y <- baseline(timeGrid)
-    lowFun <- stepfun(timeGrid, c(0, y * exp(- 1.96 * baselineSE / y)))
-    highFun <- stepfun(timeGrid, c(0, y * exp(1.96 * baselineSE / y)))
+
+    low <- y * exp(- 1.96 * baselineSE / y)
+    high <- y * exp(1.96 * baselineSE / y)
+
+    lowFun <- stepfun(timeGrid, c(0, low))
+    highFun <- stepfun(timeGrid, c(0, high))
 
     plot(highFun, do.points=FALSE, lty=2, xlab="Time",
          ylab=expression(hat(Lambda[0])(t)), main="Cumulative Baseline Mean")
@@ -31,8 +35,10 @@ doPanelFitPlot.isplineFun <- function(baseline, timeGrid, baselineSE, ...) {
          main="Cumulative Baseline Mean (I-Spline)", ...)
 }
 
+##############################################################################
 doPanelFitPlot.isplineFun.se <- function(baseline, timeGrid, baselineSE, ...) {
     y <- baseline(timeGrid)
+
     low <- y * exp(- 1.96 * baselineSE / y)
     high <- y * exp(1.96 * baselineSE / y)
 
@@ -47,7 +53,7 @@ doPanelFitPlot.isplineFun.se <- function(baseline, timeGrid, baselineSE, ...) {
 # Method dispatch
 ##############################################################################
 setGeneric("doPanelFitPlot",
-           function(baseline, baselineSE, ...) {
+           function(baseline, timeGrid, baselineSE, ...) {
                standardGeneric("doPanelFitPlot")
            })
 
@@ -70,7 +76,6 @@ setMethod("doPanelFitPlot",
 setMethod("doPanelFitPlot",
           signature(baseline="isplineFun", baselineSE="numeric"),
           doPanelFitPlot.isplineFun.se)
-
 
 ##############################################################################
 # Plot a PanelReg object
@@ -95,7 +100,7 @@ print.panelReg <- function(x, digits=max(options()$digits - 4, 3), ...) {
         se <- x$betaSE
 
     tmp <- data.frame(coef, exp(coef), se, coef/se,
-                      signif(1 - pchisq((coef/ se)^2, 1), digits -1))
+                      signif(1 - pchisq((coef/ se)^2, 1), digits - 1))
 
     dimnames(tmp) <- list(names(coef),
                           c("coef", "exp(coef)", "se(coef)", "z", "Pr(>|z|)"))
@@ -105,7 +110,7 @@ print.panelReg <- function(x, digits=max(options()$digits - 4, 3), ...) {
     cat("Call:\n")
     dput(x$call)
     cat("\n")
-    printCoefmat(tmp)
+    printCoefmat(tmp, dig.tst=max(1, min(5, digits)))
     cat("\n")
     invisible()
 }
