@@ -4,7 +4,6 @@
 PanelSurv <- function(ID, time, count) {
     if (sum(time <= 0) > 0)
         stop("Observation time must be positive.")
-
     index <- which(!duplicated(ID))
     N <- length(index)
     uniqueID <- ID[index]
@@ -17,7 +16,7 @@ PanelSurv <- function(ID, time, count) {
         panelMatrix[i, which(timeGrid %in% time[rowSet])] <- count[rowSet]
     }
 
-    ps <- list(psDF=data.frame(ID=ID, time=time, count=count),
+    ps <- list(psDF=data.frame(ID = ID, time=time, count=count),
                timeGrid=timeGrid, panelMatrix=panelMatrix)
     class(ps) <- "PanelSurv"
     ps
@@ -26,5 +25,5 @@ PanelSurv <- function(ID, time, count) {
 is.PanelSurv <- function(x) inherits(x, "PanelSurv")
 
 plot.PanelSurv <- function(x, ...) {
-    ggplot(x$psDF, aes(time, ID)) + geom_tile(aes(fill=count))
+    with(x$psDF, ggplot(data = x$psDF, aes(time, ID)) + geom_tile(aes(fill = count)))
 }

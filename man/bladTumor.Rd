@@ -58,9 +58,9 @@ print(p)
 # Fit a semiparametric regression model
 formula <- PanelSurv(subject, time, count2) ~ number + size + pyridoxine + thiotepa
 
-panelReg(formula, data=bladTumor, method="MPL", se="Bootstrap", control=list(R=50))
+panelReg(formula, data=bladTumor, method="MPL", se="Bootstrap", control=list(R=20))
 
-panelReg(formula, data=bladTumor, method="MLs", se="Bootstrap", control=list(R=50))
+panelReg(formula, data=bladTumor, method="MLs", se="Bootstrap", control=list(R=20))
 }
 }
 \keyword{survival}

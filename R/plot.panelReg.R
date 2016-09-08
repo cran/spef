@@ -8,9 +8,9 @@
 
 ##############################################################################
 doPanelFitPlot.stepfun <- function(baseline, timeGrid, baselineSE, ...) {
-    plot(baseline, do.points=FALSE, xlab="Time",
-         ylab=expression(hat(Lambda[0])(t)),
+    plot(baseline, do.points=FALSE, xlab="", ylab = "",
          main="Cumulative Baseline Mean", ...)
+    title(xlab = "Time", ylab = expression(hat(Lambda[0])(t)), line = 2, cex.lab = 1)
 }
 
 ##############################################################################
@@ -23,16 +23,16 @@ doPanelFitPlot.stepfun.se <- function(baseline, timeGrid, baselineSE, ...) {
     lowFun <- stepfun(timeGrid, c(0, low))
     highFun <- stepfun(timeGrid, c(0, high))
 
-    plot(highFun, do.points=FALSE, lty=2, xlab="Time",
-         ylab=expression(hat(Lambda[0])(t)), main="Cumulative Baseline Mean")
+    plot(highFun, do.points=FALSE, lty=2, xlab="", ylab = "", main="Cumulative Baseline Mean")
+    title(xlab = "Time", ylab = expression(hat(Lambda[0])(t)), line = 2, cex.lab = 1)
     plot(baseline, do.points=FALSE, add=TRUE, ...)
     plot(lowFun, do.points=FALSE, lty=2, add=TRUE)
 }
 
 ##############################################################################
 doPanelFitPlot.isplineFun <- function(baseline, timeGrid, baselineSE, ...) {
-    plot(baseline, xlab="Time", ylab=expression(hat(Lambda[0])(t)),
-         main="Cumulative Baseline Mean (I-Spline)", ...)
+    plot(baseline, xlab="", ylab = "", main="Cumulative Baseline Mean (I-Spline)", ...)
+    title(xlab = "Time", ylab = expression(hat(Lambda[0])(t)), line = 2, cex.lab = 1)    
 }
 
 ##############################################################################
@@ -42,9 +42,9 @@ doPanelFitPlot.isplineFun.se <- function(baseline, timeGrid, baselineSE, ...) {
     low <- y * exp(- 1.96 * baselineSE / y)
     high <- y * exp(1.96 * baselineSE / y)
 
-    plot(baseline, xlab="Time", ylab=expression(hat(Lambda[0])(t)),
-         main="Cumulative Baseline Mean (I-Spline)",
+    plot(baseline, xlab="", ylab = "", main="Cumulative Baseline Mean (I-Spline)",
          ylim=c(0, 1.05 * max(high)), ...)
+    title(xlab = "Time", ylab = expression(hat(Lambda[0])(t)), line = 2, cex.lab = 1)
     points(timeGrid, high, type="l", lty=2)
     points(timeGrid, low, type="l", lty=2)
 }

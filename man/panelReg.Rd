@@ -156,10 +156,10 @@ data(blaTum)
 formula <- PanelSurv(id, time, count) ~ num + size + treatment
 
 panelReg(formula, data=blaTum, method="AEE", se="Sandwich")
-panelReg(formula, data=blaTum, method="AEEX", se="Impute", control=list(a=0.1, R=30))
-panelReg(formula, data=blaTum, method="HWZ", se="Bootstrap", control=list(R=30))
+panelReg(formula, data=blaTum, method="AEEX", se="Impute", control=list(a=0.1, R=50))
+panelReg(formula, data=blaTum, method="HWZ", se="Bootstrap", control=list(R=50))
 panelReg(formula, data=blaTum, method="MLs", se="NULL")
-panelReg(formula, data=blaTum, method="SWa", se="Bootstrap", control=list(R=30))
+panelReg(formula, data=blaTum, method="SWa", se="Bootstrap", control=list(R=50))
 }
 }
 \keyword{survival}

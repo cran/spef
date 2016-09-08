@@ -1,17 +1,17 @@
 Package: spef
-Version: 0.1-7
-Date: 2010-09-17
-Title: Semiparametric estimating functions.
-Author: Xiaojing Wang <wangxj03@gmail.com> and Jun Yan
+Version: 1.0-0
+Date: 2016-09-07
+Title: Semiparametric Estimating Functions
+Author: Xiaojing Wang <xiaojingw@google.com> and Jun Yan
         <jyan@stat.uconn.edu>
-Maintainer: Xiaojing Wang <wangxj03@gmail.com>
-Depends: methods, survival, nleqslv, ggplot2
+Maintainer: Sy Han (Steven) Chiou <schiou@hsph.harvard.edu>
 Description: Functions for fitting semiparametric regression models for
         panel count survival data.
 License: GPL (>= 3)
-URL: http://www.stat.uconn.edu/~xjwang/spef
 LazyLoad: yes
 LazyData: no
-Packaged: 2010-09-19 22:52:38 UTC; yujing
+Packaged: 2016-09-07 21:30:47 UTC; steven
+Imports: methods, survival, nleqslv, ggplot2, plyr, splines
 Repository: CRAN
-Date/Publication: 2010-09-20 07:41:31
+Date/Publication: 2016-09-08 00:33:07
+NeedsCompilation: no

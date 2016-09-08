@@ -45,14 +45,15 @@ blaTum
   \code{\link{bladTumor}}
 }
 \examples{
-# Load data set
+## Load data set
 data(blaTum)
 
-# Plot bladder tumor data
+## Plot bladder tumor data
+library(ggplot2)
 ggplot(blaTum, aes(time, id)) + geom_tile(aes(fill=count)) +
    facet_grid(treatment ~ ., scales="free_y", )
 
-# Fit a semiparametric regression model
+## Fit a semiparametric regression model
 formula <- PanelSurv(id, time, count) ~ num + size + treatment
 fit <- panelReg(formula, data=blaTum, method="AEE", se="Sandwich")
 fit
