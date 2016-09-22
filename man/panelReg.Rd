@@ -137,12 +137,13 @@ panelReg(formula, data,
   function with panel count data using monotone polynomial
   splines. \emph{Biometrika} \bold{94}(3), 705--718.
 
-  Wang, X. and Yan, J. (2010). Augmented estimating equations for
-  semiparametric panel count regression with informative observation
-  times and censoring time. Submitted.
+  Wang, X. and Yan, J. (2011). Fitting semiparametric regressions for panel
+  count survival data with an R package spef. \emph{Computer methods and
+    programs in biomedicine} \bold{104}(2), 278--285.
   
-  Wang, X. and Yan, J. (2010). Fitting semiparametric regressions for panel
-  count survival data with an R package spef. Submitted.
+  Wang, X. and Yan, J. (2013). Augmented estimating equations for
+  semiparametric panel count regression with informative observation
+  times and censoring time. \emph{Statistica Sinica}, 359--381.  
 }
 
 \seealso{
