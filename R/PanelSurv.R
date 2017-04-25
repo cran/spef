@@ -25,5 +25,7 @@ PanelSurv <- function(ID, time, count) {
 is.PanelSurv <- function(x) inherits(x, "PanelSurv")
 
 plot.PanelSurv <- function(x, ...) {
-    with(x$psDF, ggplot(data = x$psDF, aes(time, ID)) + geom_tile(aes(fill = count)))
+    with(x$psDF, ggplot(data = x$psDF, aes(time, ID, height = 2, width = 15)) +
+                 geom_tile(aes(fill = count)) + theme_bw() +
+                 scale_fill_gradient(low = "grey", high = "black"))
 }

@@ -16,8 +16,8 @@
 }
 \usage{
 panelReg(formula, data,
-         method=c("AEE", "AEEX", "HWZ", "MPL", "MPLs", "MLs", "SWa", "SWb", "SWc"),
-         se=c("NULL", "Bootstrap", "Impute", "Sandwich"), control=list())
+         method=c("AEE", "AEEX", "HWZ", "MPL", "MPLs", "MLs", "SCM", "SWa", "SWb", "SWc"),
+         se=c("NULL", "smBootstrap", "Bootstrap", "Impute", "Sandwich"), control=list())
 }
 \arguments{
   \item{formula}{
@@ -62,6 +62,13 @@ panelReg(formula, data,
   informative censoring respectively. Both allow informative observation
   times.
 
+  \code{"SCM"} is semiparametric scale-change model for the rate
+  model. The observation time process is allowed to be correlated with
+  the underlying recurrent event process through a frailty variable,
+  which does not need to be specified. The model also allows marginal
+  interpretations for the regression parameters and connects naturally
+  with AFT model.
+  
   \code{"HWZ"} is Huang-Wang-Zhang's method. It allows both
   information observation times and informative censoring time. It does
   not need to specify the dependence structure or model the frailty.
@@ -88,6 +95,8 @@ panelReg(formula, data,
   For standard errors estimation method:
 
   \code{"NULL"} means do not calculate standard errors;
+  \code{"smBootstrap"} is the smoothed bootstrap estimation method
+  that works with \code{"SCM"}.
   \code{"Bootstrap"} works with all fitting methods; \code{"Impute"} is
   the multiple imputation method that works with \code{"AEE"} and
   \code{"AEEX"}; \code{"Sandwich"} is the robust sandwich estimation

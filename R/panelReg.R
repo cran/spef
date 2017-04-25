@@ -1,23 +1,24 @@
-# Internal functions :
-#   doPanelFit.AEE
-#   doPanelFit.AEEX
-#   doPanelFit.HWZ
-#   doPanelFit.MPL
-#   doPanelFit.MPLs
-#   doPanelFit.MLs
-#   doPanelFit.SWa
-#   doPanelFit.SWb
-#   doPanelFit.SWc
-#   doPanelFit.Engine.Bootstrap
-#   doPanelFit.AEE.Impute
-#   doPanelFit.AEEX.Impute
-#   doPanelFit.AEE.Sandwich
-#   doPanelFit.AEEX.Sandwich
-# Export functions :
-#   panelReg
+## Internal functions :
+##   doPanelFit.AEE
+##   doPanelFit.AEEX
+##   doPanelFit.HWZ
+##   doPanelFit.MPL
+##   doPanelFit.MPLs
+##   doPanelFit.MLs
+##   doPanelFit.SCM
+##   doPanelFit.SWa
+##   doPanelFit.SWb
+##   doPanelFit.SWc
+##   doPanelFit.Engine.Bootstrap
+##   doPanelFit.AEE.Impute
+##   doPanelFit.AEEX.Impute
+##   doPanelFit.AEE.Sandwich
+##   doPanelFit.AEEX.Sandwich
+## Export functions :
+##   panelReg
 
 ##############################################################################
-# Augmented Estimating Equations (AEE)
+## Augmented Estimating Equations (AEE)
 ##############################################################################
 doPanelFit.AEE <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
     N <- nrow(panelMatrix)
@@ -93,24 +94,20 @@ doPanelFit.AEE <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
 }
 
 ##############################################################################
-# Extension of Augmented Estimating Equations (AEEX)
+## Extension of Augmented Estimating Equations (AEEX)
 ##############################################################################
 doPanelFit.AEEX <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
     N <- nrow(panelMatrix)
     K <- ncol(panelMatrix)
-
     eStep <- function(lambda, a) {
         e <- matrix(0, N, K)
-
         for (i in 1:N) {
             end <- which(!is.na(panelMatrix[i, ]))
             start <- c(1, head(end, -1) + 1)
-
             for (j in which(panelMatrix[i, end] > 0)) {
                 sq <- seq(start[j], end[j])
                 e[i, sq] <- panelMatrix[i, end[j]] * lambda[sq] / sum(lambda[sq])
             }
-
             if (tail(end, 1) < K) {
                 sq <- seq(tail(end, 1) + 1, K)
                 e[i, sq] <- (sum(panelMatrix[i, end]) + a) * lambda[sq] /
@@ -119,59 +116,48 @@ doPanelFit.AEEX <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
         }
         e
     }
-
-    # ncol(X) dimensional nonlinear equation
+    ## ncol(X) dimensional nonlinear equation
     f <- function(beta, e) {
         lambda <- c(colSums(e)) / sum(exp(X %*% beta))
         c(t(X) %*% (rowSums(e) - c(exp(X %*% beta)) * sum(lambda)))
     }
-
     sStep <- function(f, beta, e) {
         if (ncol(X) == 1) {
             beta <- uniroot(f, engine@interval, e=e)$root
         } else {
             beta <- nleqslv(beta, function(x) f(x, e))$x
         }
-
         lambda <- colSums(e) / sum(exp(X %*% beta))
         list(beta=beta,
              lambda=lambda)
     }
-
-    ##############################
-    # Initialize e matrix
+    ## ############################
+    ## Initialize e matrix
     e <- matrix(0, N, K)
     for (i in 1:N) {
         sq <- which(!is.na(panelMatrix[i, ]))
         mi <- tail(sq, 1)
         dsq <- diff(c(0, sq))
-
         e[i, 1:mi] <- rep(panelMatrix[i, sq] / dsq, dsq)
-
         if (mi < K) {
             e[i, (mi + 1):K] <- sum(panelMatrix[i, sq]) / mi
         }
     }
-
     a <- engine@a
-
-    # Iteration
+    ## Iteration
     convergence <- 1
     sRes <- sStep(f, engine@betaInit, e)
     for (i in 2:engine@maxIter) {
         e <- eStep(sRes$lambda, a)
-
         betaPre <- sRes$beta
         sRes <- sStep(f, sRes$beta, e)
         s <- sRes$beta - betaPre
-
         if (max(abs(s)) < engine@absTol | max(abs(s / betaPre)) < engine@relTol) {
             convergence <- 0
             break
         }
     }
     iter <- i
-
     list(beta=sRes$beta,
          baseline=stepfun(timeGrid, cumsum(c(0, sRes$lambda))),
          timeGrid=timeGrid,
@@ -181,24 +167,20 @@ doPanelFit.AEEX <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
 }
 
 ##############################################################################
-# Huang, Wang and Zhang's method, Biometrika (2006)
+## Huang, Wang and Zhang's method, Biometrika (2006)
 ##############################################################################
 doPanelFit.HWZ <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
     N <- nrow(panelMatrix)
     K <- ncol(panelMatrix)
-
     NPEM <- function(p) {
         e <- matrix(0, N, K)
-
         for (i in 1:N) {
             end <- which(!is.na(panelMatrix[i, ]))
             start <- c(1, head(end, -1) + 1)
-
             for (j in which(panelMatrix[i, end] > 0)) {
                 sq <- seq(start[j], end[j])
                 e[i, sq] <- panelMatrix[i, end[j]] * p[sq] / sum(p[sq])
             }
-
             yi <- tail(end, 1)
             if (yi < K) {
                 sq1 <- seq(1, yi)
@@ -206,12 +188,10 @@ doPanelFit.HWZ <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
                 e[i, sq2] <- sum(panelMatrix[i, end]) / sum(p[sq1]) * p[sq2]
             }
         }
-
         d <- colSums(e)
         p <- d / sum(d)
     }
-
-    ##############################
+    ## ############################
     convergence <- 1
     p <- rep(1/K, K)
     for (i in 1:engine@maxIter) {
@@ -223,50 +203,40 @@ doPanelFit.HWZ <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
         }
     }
     iter <- i
-
     m <- rowSums(panelMatrix, na.rm=TRUE)  # N*1
     y <- apply(panelMatrix, 1, function(x) tail(which(!is.na(x)), 1))
     F <- cumsum(p)
     n <- m / F[y]
-
     f <- function(beta, w) {
         totalBase <- sum(w * n) / sum(w * c(exp(X %*% beta)))
         c((w * t(X)) %*% (n - totalBase * c(exp(X %*% beta))))
     }
-
     sStep <- function(f, beta, w) {
         if (ncol(X) == 1) {
             beta <- uniroot(f, engine@interval, w=w)$root
         } else {
             beta <- nleqslv(beta, function(x) f(x, w))$x
         }
-
         totalBase <- sum(w * n) / sum(w * c(exp(X %*% beta)))
         list(beta=beta,
              totalBase=totalBase)
     }
-
     w <- rep(1, N)
     if (engine@adjust == "W")
         w[which(F[y] < 0.005)] <- 0
     if (engine@adjust == "H")
         n[which(F[y] < 1e-4)] <- 0
-
     sRes <- sStep(f, engine@betaInit, w)
-
     if (!engine@unitWeight) {
         w <- sRes$totalBase * c(exp(X %*% sRes$beta)) /
             mean((n - sRes$totalBase * c(exp(X %*% sRes$beta)))^2)
-
         if (engine@adjust == "W")
             w[which(F[y] < 0.005)] <- 0
         if (engine@adjust == "H")
             n[which(F[y] < 1e-4)] <- 0
-
         w <- w / sum(w)
         sRes <- sStep(f, sRes$beta, w)
     }
-
     list(beta=sRes$beta,
          baseline=stepfun(timeGrid, c(0, F * sRes$totalBase)),
          timeGrid=timeGrid,
@@ -275,59 +245,49 @@ doPanelFit.HWZ <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
 }
 
 ##############################################################################
-# Zhang's pseudo likelihood method, Biometrika (2002)
+## Zhang's pseudo likelihood method, Biometrika (2002)
 ##############################################################################
+
 doPanelFit.MPL <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
     N <- nrow(panelMatrix)
     K <- ncol(panelMatrix)
-
     obsMatrix <- !is.na(panelMatrix)
     NMatrix <- matrix(0, N, K)
     for (i in 1:N) {
         sq <- !is.na(panelMatrix[i, ])
         NMatrix[i, sq] <- cumsum(panelMatrix[i, sq])
     }
-
     wNbar <- colSums(NMatrix)
-
-    # Cumulative sum upper triangle matrix, [i, j] element = sum_{s=i}^j(x_s)
+    ## Cumulative sum upper triangle matrix, [i, j] element = sum_{s=i}^j(x_s)
     cumSumMatrix <- function(x) {
         m <- outer(rep(1, length(x)), x)
         m[row(m) > col(m)] <- 0
         t(apply(m, 1, cumsum))
     }
-
     cumSumMatrix.wNbar <- cumSumMatrix(wNbar)
-
-    # Isotonic regression estimates of Lambda, use max-min formula
-    # Same as pava(wNbar / wAbar, wAbar) in 'Iso' package
+    ## Isotonic regression estimates of Lambda, use max-min formula
+    ## Same as pava(wNbar / wAbar, wAbar) in 'Iso' package
     iso <- function(beta) {
         wAbar <- colSums(obsMatrix * c(exp(X %*% beta)))
         m <- cumSumMatrix.wNbar / cumSumMatrix(wAbar)
         m[row(m) > col(m)] <- 0
-
         for (i in 1:(K - 1))
             m[, K - i] <- pmin(m[, K - i], m[, K - i + 1])
-
         apply(m, 2, max)
     }
-
     f <- function(beta, Lambda) {
         c(t(X) %*% rowSums(NMatrix - outer(c(exp(X %*% beta)), Lambda) * obsMatrix))
     }
-
     beta <- engine@betaInit
     convergence <- 1
     for (i in 1:engine@maxIter) {
         Lambda <- iso(beta)
         betaPre <- beta
-
         if (ncol(X) == 1) {
             beta <- uniroot(f, engine@interval, Lambda)$root
         } else {
             beta <- nleqslv(beta, function(x) f(x, Lambda))$x
         }
-
         s <- beta - betaPre
         if (max(abs(s)) < engine@absTol | max(abs(s / betaPre)) < engine@relTol) {
             convergence <- 0
@@ -335,7 +295,6 @@ doPanelFit.MPL <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
         }
     }
     iter <- i
-
     list(beta=beta,
          baseline=stepfun(timeGrid, c(0, Lambda)),
          timeGrid=timeGrid,
@@ -344,55 +303,47 @@ doPanelFit.MPL <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
 }
 
 ##############################################################################
-# Adapt from Lu, Zhang and Huang, Biometrika (2007)
-# Maximum pseudolikehood using I-Spline
+## Adapt from Lu, Zhang and Huang, Biometrika (2007)
+## Maximum pseudolikehood using I-Spline
 ##############################################################################
+
 doPanelFit.MPLs <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
     N <- nrow(panelMatrix)
     K <- ncol(panelMatrix)
-
-    ################################
-    # Preparation for solving Lambda
+    ## ##############################
+    ## Preparation for solving Lambda
     rawX <- as.matrix(DF[, -c(1:3)])
     DF <- ddply(DF, "ID", transform, cumCount=cumsum(count))
-
-    # number of interior knots
+    ## number of interior knots
     nKnots <- ceiling(K^{1/3}) + 1
     tau <- max(timeGrid)
     bspBasis <- list(df=nKnots+3, knots=seq(0, tau, length=nKnots+2)[2:(nKnots + 1)],
                      intercept=TRUE, Boundary.knots=c(0, tau))
-
     ispMat <- ispline(timeGrid, bspBasis)
-
     rawIspMat <- ispline(DF$time, bspBasis)
-
-    # initial value of I-Spline coefficient
+    ## initial value of I-Spline coefficient
     alpha <- rep(1, bspBasis$df)
     lower <- rep(0, bspBasis$df)
-
-    # log pseudolikelihood, rawXB = c(rawX %*% beta)
+    ## log pseudolikelihood, rawXB = c(rawX %*% beta)
     logPseudolike <- function(alpha, rawXB) {
         rawL <- c(rawIspMat %*% alpha)
         rawL <- ifelse(rawL <= 0, 1e-16, rawL)
         sum(DF$cumCount * (log(rawL) + rawXB) - exp(rawXB) * rawL)
     }
-
-    ################################
-    # Preparation for solving beta
+    ## ##############################
+    ## Preparation for solving beta
     obsMatrix <- !is.na(panelMatrix)
     NMatrix <- matrix(0, N, K)
     for (i in 1:N) {
         sq <- !is.na(panelMatrix[i, ])
         NMatrix[i, sq] <- cumsum(panelMatrix[i, sq])
     }
-
-    # Lambda is the baseline evaluated at timeGrid
+    ## Lambda is the baseline evaluated at timeGrid
     f <- function(beta, Lambda) {
         c(t(X) %*% rowSums(NMatrix - outer(c(exp(X %*% beta)), Lambda) * obsMatrix))
     }
-
-    ################################
-    # Solve beta and Lambda in turn
+    ## ##############################
+    ## Solve beta and Lambda in turn
     beta <- doPanelFit(DF, panelMatrix, timeGrid, X,
                        engine=new("MPL", betaInit=engine@betaInit), stdErr=NULL)$beta
     convergence <- 1
@@ -402,14 +353,12 @@ doPanelFit.MPLs <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
                        method="L-BFGS-B", lower=lower,
                        control=list(fnscale=-1))$par
         Lambda <- c(ispMat %*% alpha)
-
         betaPre <- beta
         if (ncol(X) == 1) {
             beta <- uniroot(f, engine@interval, Lambda)$root
         } else {
             beta <- nleqslv(beta, function(x) f(x, Lambda))$x
         }
-
         s <- beta - betaPre
         if (max(abs(s)) < engine@absTol | max(abs(s / betaPre)) < engine@relTol) {
             convergence <- 0
@@ -417,7 +366,6 @@ doPanelFit.MPLs <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
         }
     }
     iter <- i
-
     list(beta=beta,
          baseline=isplineFun(alpha, bspBasis),
          timeGrid=timeGrid,
@@ -426,53 +374,45 @@ doPanelFit.MPLs <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
 }
 
 ##############################################################################
-# Adapt from Lu, Zhang and Huang, Biometrika (2007),
-# Maximum likehood using I-Spline
+## Adapt from Lu, Zhang and Huang, Biometrika (2007),
+## Maximum likehood using I-Spline
 ##############################################################################
+
 doPanelFit.MLs <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
     N <- nrow(panelMatrix)
     K <- ncol(panelMatrix)
-
-    ################################
-    # Preparation for solving baseline
+    ## ##############################
+    ## Preparation for solving baseline
     rawX <- as.matrix(DF[, -c(1:3)])
-
-    # number of interior knots
+    ## number of interior knots
     nKnots <- ceiling(K^{1/3}) + 1
     tau <- max(timeGrid)
     bspBasis <- list(df=nKnots+3, knots=seq(0, tau, length=nKnots+2)[2:(nKnots + 1)],
                      intercept=TRUE, Boundary.knots=c(0, tau))
-
     ispMat <- ispline(timeGrid, bspBasis)
-
     rawIspMat <- ispline(DF$time, bspBasis)
     tempDF <- ddply(data.frame(ID=DF$ID, rawIspMat), "ID",
                     function(m) data.frame(diff(as.matrix(rbind(0, m[, -1])))))
     dRawIspMat <- as.matrix(tempDF[, -1])
-
-    # initial value of I-Spline coefficient
+    ## initial value of I-Spline coefficient
     alpha <- rep(1, bspBasis$df)
     lower <- rep(0, bspBasis$df)
-
-    # log likelihood
+    ## log likelihood
     logLike <- function(alpha, rawXB) {
         rawDL <- c(dRawIspMat %*% alpha)
         rawDL <- ifelse(rawDL <= 0, 1e-16, rawDL)
         sum(DF$count * (log(rawDL) + rawXB) - exp(rawXB) * rawDL)
     }
-
-    ################################
-    # Preparation for solving beta
-    # Total number of events for each subject
+    ## ##############################
+    ## Preparation for solving beta
+    ## Total number of events for each subject
     totCount <- rowSums(panelMatrix, na.rm=TRUE)
     csrTime <- ddply(DF, "ID", tail, n=1)$time
-
     f <- function(beta, totBase) {
         c(t(X) %*% (totCount - totBase * c(exp(X %*% beta))))
     }
-
-    ################################
-    # Solve beta and baseline in turn
+    ## ##############################
+    ## Solve beta and baseline in turn
     beta <- doPanelFit(DF, panelMatrix, timeGrid, X,
                        engine=new("MPL", betaInit=engine@betaInit), stdErr=NULL)$beta
     convergence <- 1
@@ -481,17 +421,14 @@ doPanelFit.MLs <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
         alpha <- optim(alpha, logLike, rawXB=rawXB,
                        method="L-BFGS-B", lower=lower,
                        control=list(fnscale=-1))$par
-
         baseline <- isplineFun(alpha, bspBasis)
         totBase <- baseline(csrTime)
-
         betaPre <- beta
         if (ncol(X) == 1) {
             beta <- uniroot(f, engine@interval, totBase)$root
         } else {
             beta <- nleqslv(beta, function(x) f(x, totBase))$x
         }
-
         s <- beta - betaPre
         if (max(abs(s)) < engine@absTol | max(abs(s / betaPre)) < engine@relTol) {
             convergence <- 0
@@ -499,7 +436,6 @@ doPanelFit.MLs <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
         }
     }
     iter <- i
-
     list(beta=beta,
          baseline=baseline,
          timeGrid=timeGrid,
@@ -508,24 +444,86 @@ doPanelFit.MLs <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
 }
 
 ##############################################################################
-# Sun and Wei's method (SWa), independent observation and censoring times
+## Scale-Change model (SCM), informative censoring
+##############################################################################
+
+doPanelFit.SCM <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
+    id <- DF[,1]
+    X <- as.matrix(DF[, -(1:3)])
+    tij <- DF[,2]
+    mt <- DF[,3]
+    cluster <- as.numeric(unlist(lapply(split(id, id), function(x) 1:length(x))))
+    fit <- dfsane(engine@betaInit, pcEq, X = X, tij = tij, mt = mt,
+                   cluster = cluster, id = id, conv.tol = engine@absTol,
+                   alertConvergence = FALSE, quiet = TRUE,
+                   control = list(NM = FALSE, M = 100, noimp = 50, trace = FALSE))
+    beta <- fit$par
+    if (beta %*% beta > 1e4) {
+        fit <- BBoptim(engine@betaInit, fn = function(x)
+            sum(pcEq(x, X = X, tij = tij, mt = mt, cluster = cluster, id = id,
+                     conv.tol = engine@absTol)^2), quiet = TRUE,
+            control = list(trace = FALSE))
+        beta <- fit$par
+        }
+    iter <- fit$iter
+    convergence <- ifelse(beta %*% beta > 1e4, 1, 0)
+    ## baseline lambda estimator
+    sT <- log(tij) + X %*% beta
+    if (max(abs(exp(sT))) == Inf || all(exp(sT) == 0))
+        Ft <- getLam(sT, cluster, id, mt, conv.tol = engine@absTol)
+    else Ft <- getLam(exp(sT), cluster, id, mt, conv.tol = engine@absTol)
+    if (max(Ft) > 1e2)
+        Ft <- getLam(sT, cluster, id, mt, conv.tol = .01)
+    mi <- unlist(lapply(split(mt, id), sum))
+    Ly <- mean(mi / Ft[cumsum(unlist(lapply(split(tij, id), which.max)))], na.rm = TRUE)
+    if (Ly > 1e2)
+        Ly <- mean((mi + 0.02) / (Ft[cumsum(unlist(lapply(split(tij, id), which.max)))] + 0.02),
+                   na.rm = TRUE)
+    yi <- unlist(lapply(split(exp(sT), id), max))
+    lamSm <- sm.regression(exp(sT), Ft, method = "cv", eval.points = exp(sT), display = "none")
+    ## baseline <- with(lamSm, approx(eval.points, estimate, timeGrid, "constant", 50, 0, 1)$y)
+    list(beta = beta, baseline = with(lamSm, stepfun(eval.points[order(eval.points)],
+                                                     c(0, estimate[order(eval.points)]))),
+         timeGrid = timeGrid, lamSm = lamSm, convergence = convergence, iter = iter)
+}
+
+## smooth bootstrap for scale change model only
+doPanelFit.SCM.smBoot <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
+    res <- doPanelFit(DF, panelMatrix, timeGrid, X, engine, NULL)
+    id <- DF[,1]
+    X <- as.matrix(DF[, -(1:3)])
+    tij <- DF[,2]
+    mt <- DF[,3]
+    cluster <- as.numeric(unlist(lapply(split(id, id), function(x) 1:length(x))))
+    bt <- getBtInf(X, tij, mt, cluster, id, res$beta, stdErr@R, res$lamSm$data, method = "smooth")
+    converged <- -which(rowSums(bt$lami) == 0 |rowSums(bt$lami) > 1e5)
+    ## converged <- apply(bt$covmat, 1, function(x) (as.numeric(x %*% x) < 1e4))
+    ## converged2 <- apply(bt$lami, 
+    betaVar <- as.matrix(var(bt$covmat[converged, ], na.rm = TRUE))
+    betaSE <- sqrt(diag(betaVar))
+    baselineSE <- apply(bt$lami[converged,], 2, function(x) sd(x, na.rm = TRUE))
+    baselineQT <- apply(bt$lami[converged,], 2, quantile, probs = c(.025, .975), na.rm = T, names = F)
+    c(res, list(betaSE = betaSE, betaVar = betaVar, betaSEmat = bt$covmat, baselineMat = bt$lami,
+                baselineSE = baselineSE, baselineQT = baselineQT, 
+                R = length(converged)))
+}
+
+##############################################################################
+## Sun and Wei's method (SWa), independent observation and censoring times
 ##############################################################################
 doPanelFit.SWa <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
     N <- nrow(panelMatrix)
     K <- ncol(panelMatrix)
     X <- X - outer(rep(1, nrow(X)), colMeans(X))
-
     Nbar <- apply(panelMatrix, 1, function(x) sum(cumsum(x[!is.na(x)])))
     f <- function(beta) {
         c(t(X) %*% c(exp(- X %*% beta) * Nbar))
     }
-
     if (ncol(X) == 1) {
         beta <- uniroot(f, engine@interval)$root
     } else {
         beta <- nleqslv(engine@betaInit, f)$x
     }
-
     list(beta=beta,
          baseline=function(x) rep(NA, length(x)),
          timeGrid=timeGrid,
@@ -539,25 +537,20 @@ doPanelFit.SWa <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
 ##     N <- nrow(panelMatrix)
 ##     K <- ncol(panelMatrix)
 ##     X <- X - outer(rep(1, nrow(X)), colMeans(X))
-
 ##     Nbar <- apply(panelMatrix, 1, function(x) sum(cumsum(x[!is.na(x)])))
 ##     f <- function(beta) {
 ##         c(t(X) %*% c(exp(- X %*% beta) * Nbar))
 ##     }
-
 ##     if (ncol(X) == 1) {
 ##         beta <- uniroot(f, engine@interval)$root
 ##     } else {
 ##         beta <- nleqslv(engine@betaInit, f)$x
 ##     }
-
 ##     A <- t(X) %*% (exp(- c(X %*% beta)) * Nbar * X)
 ##     Tau <- t(X) %*% (exp(- c(2 * X %*% beta)) * Nbar^2 * X)
 ##     invA <- solve(A)
-
 ##     betaVar <- invA %*% Tau %*% t(invA)
 ##     betaSE <- sqrt(diag(as.matrix(betaVar)))
-
 ##     list(beta=beta, baseline=function(x) rep(NA, length(x)),
 ##          convergence=0, betaVar=betaVar, betaSE=betaSE)
 ## }
@@ -566,37 +559,30 @@ doPanelFit.SWa <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
 # Sun and Wei's method (SWb),
 # conditional independent observation times and independent censoring times
 ##############################################################################
+
 doPanelFit.SWb <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
     N <- nrow(panelMatrix)
     K <- ncol(panelMatrix)
     X <- X - outer(rep(1, nrow(X)), colMeans(X))
-
     nm <- names(DF)[-c(1:3)]
-
-    # Model observation times
+    ## Model observation times
     obsTimeDF <- ddply(DF, "ID", transform,
                        start=c(0, head(time, -1)), end=time, event=1)
-
     obsTimeFml <- as.formula(paste("Surv(start, end, event) ~ ",
                             paste(nm, collapse="+"),
                             "+ cluster(ID)"))
-
     obsTimeFit <- coxph(obsTimeFml, obsTimeDF)
-
-    # Estimating equation
+    ## Estimating equation
     Nbar <- apply(panelMatrix, 1, function(x) sum(cumsum(x[!is.na(x)])))
     f <- function(beta) {
         c(t(X) %*% c(exp(- X %*% beta) * Nbar))
     }
-
     if (ncol(X) == 1) {
         beta <- uniroot(f, engine@interval)$root
     } else {
         beta <- nleqslv(engine@betaInit, f)$x
     }
-
     beta <- beta - obsTimeFit$coefficients
-
     list(beta=beta,
          baseline=function(x) rep(NA, length(x)),
          timeGrid=timeGrid,
@@ -607,58 +593,45 @@ doPanelFit.SWb <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
 # Sun and Wei's method (SWc),
 # conditional independent observation and censoring times
 ##############################################################################
+
 doPanelFit.SWc <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
     N <- nrow(panelMatrix)
     K <- ncol(panelMatrix)
     X <- X - outer(rep(1, nrow(X)), colMeans(X))
-
     nm <- names(DF)[-c(1:3)]
-
-    # Model observation times
+    ## Model observation times
     obsTimeDF <- ddply(DF, "ID", transform,
                        start=c(0, head(time, -1)), end=time, event=1)
-
     obsTimeFml <- as.formula(paste("Surv(start, end, event) ~ ",
                                    paste(nm, collapse="+"),
                                    "+ cluster(ID)"))
-
     obsTimeFit <- coxph(obsTimeFml, obsTimeDF)
-
-    # Model censoring time
+    ## Model censoring time
     cenTimeDF <- cbind(ddply(DF, "ID", tail, n=1), event=1)
-
     cenTimeFml <- as.formula(paste("Surv(time, event) ~ ",
                                    paste(nm, collapse="+")))
-
     cenTimeFit <- coxph(cenTimeFml, cenTimeDF)
-
     sf <- survfit(cenTimeFit)
     survfun <- stepfun(sf$time, c(1, sf$surv), right=TRUE)
-
-    # Cumulative panelMatrix
+    ## Cumulative panelMatrix
     cumPanelMatrix <- matrix(NA, N, K)
     for (i in 1:N) {
         sq <- which(!is.na(panelMatrix[i, ]))
         cumPanelMatrix[i, sq] <- cumsum(panelMatrix[i, sq])
     }
-
-    # Estimating equation
+    ## Estimating equation
     Nbar <- rowSums(cumPanelMatrix *
                     t(outer(survfun(timeGrid), - exp(c(X %*% cenTimeFit$coefficients)), "^")),
                     na.rm=TRUE)
-
     f <- function(beta) {
         c(t(X) %*% c(exp(- X %*% beta) * Nbar))
     }
-
     if (ncol(X) == 1) {
         beta <- uniroot(f, engine@interval)$root
     } else {
         beta <- nleqslv(engine@betaInit, f)$x
     }
-
     beta <- beta - obsTimeFit$coefficients
-
     list(beta=beta,
          baseline=function(x) rep(NA, length(x)),
          timeGrid=timeGrid,
@@ -672,54 +645,43 @@ doPanelFit.Engine.Bootstrap <- function(DF, panelMatrix, timeGrid, X, engine, st
     N <- nrow(panelMatrix)
     K <- ncol(panelMatrix)
     tau <- max(timeGrid)
-
     res <- doPanelFit(DF, panelMatrix, timeGrid, X, engine, NULL)
     engine@betaInit <- res$beta
-
     R <- stdErr@R
     betaMatrix <- matrix(0, R, length(res$beta))
     baselineMatrix <- matrix(NA, R, K)
     convergence <- rep(0, R)
-
     uID <- unique(DF$ID)
-
     for (i in 1:R) {
         index <- sort(sample(1:N, size=N, replace=TRUE))
-
         mylist <- apply(matrix(index), 1, function(x) which(DF$ID == uID[x]))
         DF2 <- DF[unlist(mylist), ]
         DF2$ID <- rep(1:N, unlist(lapply(mylist, length)))
-
         panelMatrix2 <- panelMatrix[index, ]
         X2 <- as.matrix(X[index, ])
         subCol <- which(colSums(!is.na(panelMatrix2)) > 0)
         panelMatrix2 <- panelMatrix2[, subCol]
         timeGrid2 <- timeGrid[subCol]
-
         res2 <- doPanelFit(DF2, panelMatrix2, timeGrid2, X2, engine, NULL)
         betaMatrix[i, ] <- res2$beta
-
         tau2 <- max(timeGrid2)
         sq <- which(timeGrid <= tau2)
         if (tau2 < tau)
             baselineMatrix[i, sq] <- res2$baseline(timeGrid[sq])
         else
             baselineMatrix[i, ] <- res2$baseline(timeGrid)
-
         convergence[i] <- res2$convergence
     }
-
     converged <- which(convergence == 0)
     betaVar <- var(betaMatrix[converged, ], na.rm=TRUE)
     betaSE <- sqrt(diag(as.matrix(betaVar)))
     baselineSE <- sd(baselineMatrix[converged, ], na.rm=TRUE)
-
     # 2.5% and 97.5% quantiles of baseline bootstrap estimates, 2*K
     baselineQT <- apply(baselineMatrix[converged, ], 2, quantile,
                         probs=c(0.025, 0.975), na.rm=TRUE, names=FALSE)
-
-    c(res, list(betaSE=betaSE, betaVar=betaVar,
-                baselineSE=baselineSE, baselineQT=baselineQT, R=length(converged)))
+    c(res, list(betaSE=betaSE, betaVar=betaVar, betaSEmat=betaMatrix,
+                baselineMat=baselineMatrix, baselineSE=baselineSE,
+                baselineQT=baselineQT, R=length(converged)))
 }
 
 ##############################################################################
@@ -728,26 +690,21 @@ doPanelFit.Engine.Bootstrap <- function(DF, panelMatrix, timeGrid, X, engine, st
 doPanelFit.AEE.Impute <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
     N <- nrow(panelMatrix)
     K <- ncol(panelMatrix)
-
     eTime <- timeGrid
     sTime <- c(0, head(eTime, -1))
-
-    # Impute the exact recurrent event time, use multinomial assumption
+    ## Impute the exact recurrent event time, use multinomial assumption
     imputeSurvData <- function(lambda) {
         survData <- NULL
-
         for (i in 1:N) {
             eIndex <- as.numeric(which(!is.na(panelMatrix[i,])))
             sIndex <- c(0, head(eIndex, -1)) + 1
             impTime <- event <- NULL
-
             for (j in 1:length(eIndex)) {
                 if (panelMatrix[i, eIndex[j]] > 0) {
                     indexSeq <- seq(sIndex[j], eIndex[j])
                     numEvent <- c(rmultinom(1,
                                             size=panelMatrix[i, eIndex[j]],
                                             prob=lambda[indexSeq]))
-
                     for (k in which(numEvent > 0)) {
                         impTime <- c(impTime, sort(runif(numEvent[k],
                                                          sTime[sIndex[j] - 1 + k],
@@ -766,60 +723,48 @@ doPanelFit.AEE.Impute <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) 
         }
         survData
     }
-
-    ##############################
+    ## ############################
     R <- stdErr@R
     betaMatrix <- matrix(0, R, ncol(X))
     betaVarMatrix <- matrix(0, ncol(X), ncol(X))
-
     baselineMatrix <- matrix(0, R, K)
     baselineVarMatrix <- matrix(0, R, K)
-
     res <- doPanelFit(DF, panelMatrix, timeGrid, X, engine, NULL)
-
     for (i in 1:R) {
         survData <- imputeSurvData(res$lambda)
         freq <- as.numeric(table(survData$ID))
-
         survData <- cbind(survData, apply(X, 2, function(y) rep(y, freq)))
         attr(survData, "names")[-(1:4)] <- xname <- paste("X", 1:ncol(X), sep="")
-
         fml <- as.formula(paste("Surv(start, end, event) ~ ",
                                 paste(xname, collapse="+"),
                                 "+ cluster(ID)"))
-
         resCoxph <- coxph(fml, survData)
-
-        # beta
+        ## beta
         betaMatrix[i, ] <- as.numeric(resCoxph$coefficients)
         betaVarMatrix <- betaVarMatrix + resCoxph$var
-
-        # baseline
+        ## baseline
         newdf <- data.frame(t(rep(0, ncol(as.matrix(X)))))
         attr(newdf, "names") <- xname
         sfit <- survfit(resCoxph, newdata=newdf)
-
         baselineMatrix[i, ] <- stepfun(sfit$time, c(0, -log(sfit$surv)))(timeGrid)
         baselineVarMatrix[i, ] <- (stepfun(sfit$time, c(0, sfit$std.err))(timeGrid))^2
     }
-
     betaVar <- betaVarMatrix / R   + (1 + 1/R) * var(betaMatrix)
     betaSE <- sqrt(diag(as.matrix(betaVar)))
     baselineSE <- sqrt(colMeans(baselineVarMatrix) +
                        (1 + 1/R) * sd(baselineMatrix)^2)
-
     c(res, list(betaSE=betaSE, betaVar=betaVar, baselineSE=baselineSE))
 }
 
 ##############################################################################
 # Imputation based variance estimation for AEEX
 ##############################################################################
+
 doPanelFit.AEEX.Impute <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
     N <- nrow(panelMatrix)
     K <- ncol(panelMatrix)
     res <- doPanelFit(DF, panelMatrix, timeGrid, X, engine, NULL)
-
-    # Impute the number of count between the actuall censoring time and tau
+    ## Impute the number of count between the actuall censoring time and tau
     for (i in 1:N) {
         end <- which(!is.na(panelMatrix[i, ]))
         if (tail(end, 1) < K) {
@@ -828,79 +773,66 @@ doPanelFit.AEEX.Impute <- function(DF, panelMatrix, timeGrid, X, engine, stdErr)
                 sum(res$lambda[sq]) / (sum(res$lambda[-sq]) + engine@a)
         }
     }
-
-    # Use doPanelFit.AEE.Impute
+    ## Use doPanelFit.AEE.Impute
     seRes <- doPanelFit(DF, panelMatrix, timeGrid, X,
                         new("AEE", betaInit=engine@betaInit), stdErr)
-
     c(res, list(betaSE=seRes$betaSE, betaVar=seRes$betaVar, baselineSE=seRes$baselineSE))
 }
 
 ##############################################################################
 # Observed information matrix based variance estimation for AEE
 ##############################################################################
+
 doPanelFit.AEE.Sandwich <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
     N <- nrow(panelMatrix)
     K <- ncol(panelMatrix)
-
     res <- doPanelFit(DF, panelMatrix, timeGrid, X, engine, NULL)
     beta <- res$beta
     lambda <- res$lambda
-
     atRiskMatrix <- matrix(0, N, K)
     lastObs <- apply(panelMatrix, 1, function(x) tail(which(!is.na(x)), 1))
     atRiskMatrix[col(atRiskMatrix) <= lastObs] <- 1
-
-    # A is the complete information matrix for all subjects
+    ## A is the complete information matrix for all subjects
     A11 <- diag(c(t(exp(X %*% beta)) %*% atRiskMatrix))
     A21 <- t(c(exp(X %*% beta)) * X) %*% atRiskMatrix
     A22 <- t(X) %*% (X * c(exp(X %*% beta)) * c(atRiskMatrix %*% lambda))
     A <- rbind(cbind(A11, t(A21) * lambda),
                cbind(A21, A22))
-
-    # B is the missing information matrix for all subjects
+    ## B is the missing information matrix for all subjects
     B <- matrix(0, K + ncol(X), K + ncol(X))
     for (i in 1:N) {
         sq <- which(!is.na(panelMatrix[i, ]))
         mi <- panelMatrix[i, sq]
-
         if (is.na(panelMatrix[i, K])) {
             sq <- c(sq, K)
             mi <- c(mi, 0)
         }
-
         dsq <- diff(c(0, sq))
         ndsq <- length(dsq)
-
-        # normalize lambda, multinomial
+        ## normalize lambda, multinomial
         p <- lambda / rep(diff(c(0, cumsum(lambda)[sq])), dsq)
         p[which(p == Inf)] <- 1
         blkp <- p * diag(1, ndsq)[rep(1:ndsq, dsq), ]
-
-        # atRisk (rij) is taken care of
+        ## atRisk (rij) is taken care of
         Xi <- X[i, ]
         B11 <- rep(mi, dsq) * (diag(p) - blkp %*% t(blkp))
         B12 <- rowSums(B11) %*% t(Xi)
         B22 <- sum(B11) * Xi %*% t(Xi)
         B <- B + rbind(cbind(B11, B12),
                        cbind(t(B12), B22))
-        # matrix.plot(B)
+        ## matrix.plot(B)
     }
-
-    # Inverse of observed information matrix
+    ## Inverse of observed information matrix
     V <- solve(A - B)
-
-    # Regularization
+    ## Regularization
     dgV <- diag(V)
     dgV[which(dgV < 0)] <- 0
     diag(V) <- dgV
-
-    # Sandwich estimator
+    ## Sandwich estimator
     e <- matrix(0, N, K)
     for (i in 1:N) {
         end <- which(!is.na(panelMatrix[i, ]))
         start <- c(1, head(end, -1) + 1)
-
         for (j in which(panelMatrix[i, end] > 0)) {
             sq <- seq(start[j], end[j])
             e[i, sq] <- panelMatrix[i, end[j]] * lambda[sq] / sum(lambda[sq])
@@ -910,92 +842,75 @@ doPanelFit.AEE.Sandwich <- function(DF, panelMatrix, timeGrid, X, engine, stdErr
     U2 <- t(colSums(U1) * X)
     U <- rbind(U1, U2)
     V <- V %*% (U %*% t(U)) %*% t(V)
-
     ##
     betaVar <- V[-c(1:K), -c(1:K)]
     betaSE <- sqrt(diag(as.matrix(betaVar)))
-
     lowOne <- matrix(0, K, K)
     lowOne[row(lowOne) >= col(lowOne)] <- 1
     vLambda <- diag(lowOne %*% V[1:K, 1:K] %*% t(lowOne))
     baselineSE <- sqrt(vLambda)
-
     c(res, list(betaSE=betaSE, betaVar=betaVar, baselineSE=baselineSE))
 }
 
 ##############################################################################
 # Observed information matrix based variance estimation for AEEX
 ##############################################################################
+
 doPanelFit.AEEX.Sandwich <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
     N <- nrow(panelMatrix)
     K <- ncol(panelMatrix)
-
     res <- doPanelFit(DF, panelMatrix, timeGrid, X, engine, NULL)
     beta <- res$beta
     lambda <- res$lambda
-
     atRiskMatrix <- matrix(1, N, K)
-
-    # A is the complete information matrix for all subjects
+    ## A is the complete information matrix for all subjects
     A11 <- diag(c(t(exp(X %*% beta)) %*% atRiskMatrix))
     A21 <- t(c(exp(X %*% beta)) * X) %*% atRiskMatrix
     A22 <- t(X) %*% (X * c(exp(X %*% beta)) * c(atRiskMatrix %*% lambda))
     A <- rbind(cbind(A11, t(A21) * lambda),
                cbind(A21, A22))
-
-    # B is the missing information matrix for all subjects
+    ## B is the missing information matrix for all subjects
     B <- matrix(0, K + ncol(X), K + ncol(X))
     for (i in 1:N) {
         sq <- which(!is.na(panelMatrix[i, ]))
         mi <- panelMatrix[i, sq]
-
         if (is.na(panelMatrix[i, K])) {
             y1 <- sum(mi)
             mu1 <- sum(lambda[seq(1, tail(mi, 1))])
             mu2 <- sum(lambda[seq(tail(mi, 1) + 1, K)])
-
             sq <- c(sq, K)
             mi <- c(mi, (y1 + engine@a) * mu2 / (mu1 + engine@a))
         }
-
         dsq <- diff(c(0, sq))
         ndsq <- length(dsq)
-
-        # normalize lambda, multinomial
+        ## normalize lambda, multinomial
         p <- lambda / rep(diff(c(0, cumsum(lambda)[sq])), dsq)
         p[which(p == Inf)] <- 1
         blkp <- p * diag(1, ndsq)[rep(1:ndsq, dsq), ]
-
         Xi <- X[i, ]
         B11 <- rep(mi, dsq) * (diag(p) - blkp %*% t(blkp))
-
         if (is.na(panelMatrix[i, K])) {
             p[seq(1, K - tail(dsq, 1))] <- 0
             B11 <- B11 + outer(p, p) * (y1 + engine@a) *
                 mu2 / (mu2 + engine@a) * (1 + mu1 / (mu2 + engine@a))
         }
-
         B12 <- rowSums(B11) %*% t(Xi)
         B22 <- sum(B11) * Xi %*% t(Xi)
         B <- B + rbind(cbind(B11, B12),
                        cbind(t(B12), B22))
-        # matrix.plot(B)
+        ## matrix.plot(B)
     }
-
-    # Inverse of observed information matrix
+    ## Inverse of observed information matrix
     V <- solve(A - B)
-
-    # Regularization
+    ## Regularization
     dgV <- diag(V)
     dgV[which(dgV < 0)] <- 0
     diag(V) <- dgV
-
-    # Sandwich estimator
+    ## Sandwich estimator
     e <- matrix(0, N, K)
     for (i in 1:N) {
         end <- which(!is.na(panelMatrix[i, ]))
         start <- c(1, head(end, -1) + 1)
-
         for (j in which(panelMatrix[i, end] > 0)) {
             sq <- seq(start[j], end[j])
             e[i, sq] <- panelMatrix[i, end[j]] * lambda[sq] / sum(lambda[sq])
@@ -1005,22 +920,20 @@ doPanelFit.AEEX.Sandwich <- function(DF, panelMatrix, timeGrid, X, engine, stdEr
     U2 <- t(colSums(U1) * X)
     U <- rbind(U1, U2)
     V <- V %*% (U %*% t(U)) %*% t(V)
-
     ##
     betaVar <- V[-c(1:K), -c(1:K)]
     betaSE <- sqrt(diag(as.matrix(betaVar)))
-
     lowOne <- matrix(0, K, K)
     lowOne[row(lowOne) >= col(lowOne)] <- 1
     vLambda <- diag(lowOne %*% V[1:K, 1:K] %*% t(lowOne))
     baselineSE <- sqrt(vLambda)
-
     c(res, list(betaSE=betaSE, betaVar=betaVar, baselineSE=baselineSE))
 }
 
 ##############################################################################
 # Class Definition
 ##############################################################################
+
 setClass("Engine",
          representation(betaInit="numeric", interval="numeric",
                         maxIter="numeric", absTol="numeric", relTol="numeric"),
@@ -1058,6 +971,9 @@ setClass("MPLs",
 setClass("MLs",
          contains="Engine")
 
+setClass("SCM",
+         contains="Engine")
+
 setClass("SWa",
          contains="Engine")
 
@@ -1082,6 +998,11 @@ setClass("Impute",
 setClass("Sandwich",
          representation(),
          prototype(),
+         contains="StdErr")
+
+setClass("smBootstrap",
+         representation(R = "numeric"),
+         prototype(R=30),
          contains="StdErr")
 
 ##############################################################################
@@ -1117,6 +1038,10 @@ setMethod("doPanelFit",
           doPanelFit.MLs)
 
 setMethod("doPanelFit",
+          signature(engine="SCM", stdErr="NULL"),
+          doPanelFit.SCM)
+
+setMethod("doPanelFit",
           signature(engine="SWa", stdErr="NULL"),
           doPanelFit.SWa)
 
@@ -1148,62 +1073,234 @@ setMethod("doPanelFit",
           signature(engine="AEEX", stdErr="Sandwich"),
           doPanelFit.AEEX.Sandwich)
 
-##############################################################################
-# User's Main Function
-##############################################################################
-panelReg <- function(formula, data,
-                     method=c("AEE", "AEEX", "HWZ", "MPL", "MPLs", "MLs", "SWa", "SWb", "SWc"),
-                     se=c("NULL", "Bootstrap", "Impute", "Sandwich"), control=list()) {
+setMethod("doPanelFit",
+          signature(engine="SCM", stdErr="smBootstrap"),
+          doPanelFit.SCM.smBoot)
 
+##############################################################################
+## User's Main Function
+##############################################################################
+
+panelReg <- function(formula, data,
+                     method=c("AEE", "AEEX", "HWZ", "MPL", "MPLs", "MLs", "SCM", "SWa", "SWb", "SWc"),
+                     se = c("NULL", "smBootstrap", "Bootstrap", "Impute", "Sandwich"), control=list()) {
     method <- match.arg(method)
     se <- match.arg(se)
     Call <- match.call()
-
-    # A PanelSurv object
+    ## A PanelSurv object
     obj <- eval(formula[[2]], data)
     if (!is.PanelSurv(obj))
         stop("Response must be a PanelSurv object")
-
-    # Combine respones data frame and covariate data frame (remove intercept column)
-    # Multiple rows per subject
+    ## Combine respones data frame and covariate data frame (remove intercept column)
+    ## Multiple rows per subject
     formula[[2]] <- NULL
-
     if (formula == ~ 1) {
         DF <- cbind(obj$psDF, zero=0)
     } else {
         DF <- cbind(obj$psDF, model.matrix(formula, data))[, -4]
     }
-
     DF <- DF[order(DF$ID, DF$time), ]
-
-    # Design matrix, one row per subject
+    idTmp <- with(DF, as.numeric(unlist(lapply(split(ID, ID), length))))
+    DF$ID <- rep(1:length(idTmp), idTmp)
+    ## Design matrix, one row per subject
     X <- as.matrix(ddply(DF, "ID", head, n=1)[, -c(1:3)])
-
-    # Create an Engine object
+    ## Create an Engine object
     engine.control <- control[names(control) %in% names(attr(getClass(method), "slots"))]
     engine <- do.call("new", c(list(Class=method), engine.control))
-
     if (length(engine@betaInit) == 1 & ncol(X) > 1)
         engine@betaInit <- rep(engine@betaInit, ncol(X))
     if (length(engine@betaInit) > 1 & length(engine@betaInit) != ncol(X))
         stop("Invalid length of initial beta values!")
-
-    # Create a StdErr object
+    ## Create a StdErr object
     if (se == "NULL")
         stdErr <- NULL
     else {
         stdErr.control <- control[names(control) %in% names(attr(getClass(se), "slots"))]
         stdErr <- do.call("new", c(list(Class=se), stdErr.control))
     }
-
-    # Dispatch, DF = "ID", "time", "count", covariates
+    ## Dispatch, DF = "ID", "time", "count", covariates
     fit <- doPanelFit(DF=DF, panelMatrix=obj$panelMatrix, timeGrid=obj$timeGrid,
                       X=X, engine=engine, stdErr=stdErr)
-
     names(fit$beta) <- names(DF)[-c(1:3)]
     fit$call <- Call
-
     class(fit) <- "panelReg"
     fit
+}
+
+
+##############################################################################
+## Required functions for pcReg
+##############################################################################
+
+pcEq <- function(alpha, X, tij, mt, cluster, id, conv.tol = 1e-2) {
+    yi <- unlist(lapply(split(tij, id), max))
+    yid <- cumsum(unlist(lapply(split(id, id), length)))
+    mi <- unlist(lapply(split(mt, id), sum))
+    n <- length(yi)
+    p <- ncol(X)
+    ## sY <- log(yi) + X %*% alpha
+    sT <- log(tij) + X %*% alpha
+    if (max(abs(exp(sT))) == Inf || all(exp(sT) == 0))
+        Ft <- getLam(sT, cluster, id, mt, conv.tol = conv.tol)
+    else Ft <- getLam(exp(sT), cluster, id, mt, conv.tol = conv.tol)
+    Ly <- mean(mi / Ft[cumsum(unlist(lapply(split(tij, id), which.max)))], na.rm = TRUE)
+    if (Ly > 1e5) 
+        Ly <- mean((mi + 0.02) / (Ft[cumsum(unlist(lapply(split(tij, id), which.max)))] + 0.02),
+                   na.rm = TRUE)
+    res <- vector("double", p)
+    res <- .C("alphaEq1", as.double(X[which(cluster == 1),]), as.double(Ft[yid] * Ly),
+              as.integer(mi), as.integer(n), as.integer(p),
+              out = as.double(res), PACKAGE = "spef")$out
+    res / n^2
+}
+
+lamEm <- function(f, ordt, tij, id, mt, aijk, bik) {
+    p <- diff(f)
+    ## p <- p / sum(p)
+    tmp <- mt * t(apply(aijk, 1, function(x) x * p / sum(x * p)) +
+                  apply(bik, 1, function(x) (1 - x) * p / sum(x * p)))
+    dk <- colSums(tmp * is.finite(tmp), na.rm = TRUE)
+    f2 <- cumsum(dk) / sum(dk)
+    return(c(0, f2))
+}
+
+getLam <- function(tij, cluster, id, mt, conv.tol = 1e-2) {
+    ki <- unlist(lapply(split(id, id), length))
+    if (sum(ki == 1) > 0) 
+        tmp <- tij[-which(id %in% which(ki == 1))] 
+    else
+        tmp <- tij
+    tmp <- unique(tmp) ## newly added
+    ordt <- c(0, tmp[order(tmp)])
+    N <- length(tmp)
+    Lambda0 <- rep(0, N)
+    ub <- sapply(1:N + 1, function(x) tij >= ordt[x])
+    tijTmp <- c(0, tij[-length(tij)])
+    tijTmp <- ifelse(cluster == 1, 0, tijTmp)
+    lb <- sapply(1:N, function(x) tijTmp <= ordt[x])
+    aijk <- ub * lb
+    yi <- unlist(lapply(split(tij, id), max))
+    bik <- apply(sapply(1:N + 1, function(x) yi >= ordt[x]), 2, function(y) rep(y, ki))
+    f0 <- seq(0, 1, 1 / N)
+    em <- squarem(par = f0, fixptfn = lamEm, ## objfn = lam.loglik,
+                  ordt = ordt, tij = tij,
+                  id = id, mt = mt, aijk = aijk, bik = bik,
+                  control = list(tol = conv.tol))
+    ## print(em$convergence)
+    em$par <- cumsum(c(0, pmax(0, diff(em$par))))
+    Lambda0 <- sapply(1:length(tij), function(x) em$par[max(which(tij[x] >= ordt))])
+    Lambda0
+}
+
+lam.loglik <- function(f, ordt, tij, id, mt, aijk, bik) {
+    f <- ifelse(f < 0, 0, f)
+    ki <- unlist(lapply(split(id, id), length))
+    if (sum(id %in% which(ki == 1)) > 0) {
+        ind <- id[-which(id %in% which(ki == 1))]
+        mti <- mt[-which(id %in% which(ki == 1))]
+        tiji <- tij[-which(id %in% which(ki == 1))]
+    } else {
+        ind <- id
+        mti <- mt
+        tiji <- tij
+    }
+    Lambda0 <- sapply(1:length(tiji), function(x) f[max(which(tiji[x] >= ordt))])
+    -sum(mti * log(1 + unlist(lapply(split(Lambda0, ind), function(x) diff(c(0,x)) / max(x)))))
+}
+
+
+getBtInf <- function(X, tij, mt, cluster, id, a, B, lamSm, conv.tol = 1e-2, method = "bootstrap") {
+    covmat <- matrix(NA, ncol = ncol(X), nrow = B)
+    Lyi <- rep(NA, B)
+    lami <- matrix(NA, ncol = length(tij), nrow = B)
+    mi <- unlist(lapply(split(mt, id), sum))
+    sT <- log(tij) + X %*% a
+    yi <- unlist(lapply(split(exp(sT), id), max))
+    for (k in 1:B) {
+        mti <- Xi <- clusteri <- tiji <- idi <- NULL
+        smp <- sample(unique(id), replace = TRUE)
+        if (method == "bootstrap") {
+            btId <- unlist(sapply(smp, function(x) which(id == x)))
+            Xi <- X[btId,]
+            clusteri <- cluster[btId]
+            tiji <- tij[btId]
+            mti <- mt[btId]
+            idi <- rep(1:length(smp), unlist(sapply(smp, function(x) sum(id == x))))
+            covmat[k,] <-  dfsane(a, pcEq, X = Xi, tij = tiji, mt = mti, cluster = clusteri, id = idi,
+                                  conv.tol = conv.tol, alertConvergence = FALSE, quiet = TRUE,
+                                  control = list(NM = FALSE, M = 100, noimp = 50, trace = FALSE))$par
+            if (covmat[k,] %*% covmat[k,] > 1e4)
+                covmat[k, ] <- BBoptim(a * 0, fn = function(x)
+                    sum(pcEq(x, X = Xi, tij = tiji, mt = mti, cluster = clusteri, id = idi,
+                             conv.tol = conv.tol)^2), control = list(trace = FALSE), quiet = TRUE)$par
+        }        
+        if (method == "smooth") {
+            j <- 1
+            for (i in smp) { ## prepare bootstrap data
+                tmp <- rpois(1, mi[i])
+                if (tmp > 0) {
+                    probs <- diff(c(0, approx(lamSm$x, lamSm$y/max(lamSm$y), split(exp(sT), id)[[i]], yleft = 0, yright = 1)$y))
+                    if (all(probs >= 0) & !all(probs == 0)) mti <- c(mti, c(rmultinom(1, size = tmp, prob = probs)))
+                    else mti <- c(mti, c(rmultinom(1, size = tmp, prob = rep(1 / length(probs), length(probs)))))
+                    ## ytmp <- sort(approx(lamSm$y, lamSm$x, runif(mi[i], max = approx(lamSm$x, lamSm$y, yi[i])$y))$y)
+                    ## mti <- c(mti, diff(c(0, sapply(ttmp, function(x) max(0, which(x > ytmp))))))
+                } else {
+                    mti <- c(mti, rep(0, sum(id == i)))            
+                }
+                Xi <- rbind(Xi, X[which(id == i), ])
+                clusteri <- c(clusteri, cluster[which(id == i)])
+                tiji <- c(tiji, tij[which(id == i)])
+                idi <- c(idi, rep(j, sum(id == i)))
+                j <- j + 1
+            }
+            covmat[k, ] <-  dfsane(a, pcEq, X = Xi, tij = tiji, mt = mti, cluster = clusteri, id = idi,
+                                   conv.tol = conv.tol, alertConvergence = FALSE, quiet = TRUE,
+                                   control = list(NM = FALSE, M = 100, noimp = 50, trace = FALSE))$par
+            if (covmat[k,] %*% covmat[k,] > 1e4)
+                covmat[k, ] <- BBoptim(a * 0, fn = function(x)
+                    sum(pcEq(x, X = Xi, tij = tiji, mt = mti, cluster = clusteri, id = idi,
+                             conv.tol = conv.tol)^2), control = list(trace = FALSE), quiet = TRUE)$par
+        } 
+        if (method == "smooth2") {
+            j <- 1
+            for (i in smp) { ## prepare bootstrap data
+                if (mi[i] > 0) {
+                    probs <- diff(c(0, approx(lamSm$x, lamSm$y/max(lamSm$y), split(exp(sT), id)[[i]], yleft = 0, yright = 1)$y))
+                    if (all(probs >= 0) & !all(probs == 0)) mti <- c(mti, c(rmultinom(1, size = tmp, prob = probs)))
+                    else mti <- c(mti, c(rmultinom(1, size = tmp, prob = rep(1 / length(probs), length(probs)))))
+                    ## ytmp <- sort(approx(lamSm$y, lamSm$x, runif(mi[i], max = approx(lamSm$x, lamSm$y, yi[i])$y))$y)
+                    ## mti <- c(mti, diff(c(0, sapply(ttmp, function(x) max(0, which(x > ytmp))))))
+                } else {
+                    mti <- c(mti, rep(0, sum(id == i)))            
+                }
+                Xi <- rbind(Xi, X[which(id == i), ])
+                clusteri <- c(clusteri, cluster[which(id == i)])
+                tiji <- c(tiji, tij[which(id == i)])
+                idi <- c(idi, rep(j, sum(id == i)))
+                j <- j + 1
+            }
+            covmat[k, ] <-  dfsane(a, pcEq, X = Xi, tij = tiji, mt = mti, cluster = clusteri, id = idi,
+                                   conv.tol = conv.tol, alertConvergence = FALSE, quiet = TRUE,
+                                   control = list(NM = FALSE, M = 100, noimp = 50, trace = FALSE))$par
+            if (covmat[k,] %*% covmat[k,] > 1e4)
+                covmat[k, ] <- BBoptim(a * 0, fn = function(x)
+                    sum(pcEq(x, X = Xi, tij = tiji, mt = mti, cluster = clusteri, id = idi,
+                             conv.tol = conv.tol)^2), control = list(trace = FALSE), quiet = TRUE)$par
+        } 
+        sTi <- log(tiji) + Xi %*% covmat[k,]
+        ## if (max(exp(sTi)) == Inf) {next}
+        if (max(abs(exp(sTi))) == Inf || all(exp(sT) == 0))
+            Fti <- getLam(sTi, clusteri, idi, mti, conv.tol = conv.tol)
+        else Fti <- getLam(exp(sTi), clusteri, idi, mti, conv.tol = conv.tol)
+        if (max(Fti) > 1e2)
+            Fti <- getLam(sTi, clusteri, idi, mti, conv.tol = 0.01)
+        mii <- unlist(lapply(split(mti, idi), sum))
+        Lyi[k] <- mean(mii / Fti[cumsum(unlist(lapply(split(tiji, idi), which.max)))], na.rm = TRUE)
+        if (Lyi[k] == Inf) 
+            Lyi[k] <- mean((mii + 0.02) / (Fti[cumsum(unlist(lapply(split(tiji, idi), which.max)))] + 0.02),
+                           na.rm = TRUE)
+        lami[k,] <- approx(exp(sTi), Fti, exp(sT), method = "constant", yleft = 0, yright = 1)$y
+    }
+    list(covmat = covmat, Lyi = Lyi, lami = lami)
 }
 

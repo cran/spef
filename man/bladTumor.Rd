@@ -13,18 +13,18 @@ bladTumor
   are from the pyridoxine arm.
 }
 \format{
-  \tabular{ll}{
-    subject:\tab patient id\cr
-    time:\tab observation time\cr
-    count:\tab cumulative number of tumors\cr
-    count2:\tab number of new tumors since last observation time\cr
-    number:\tab initial number of tumours (8=8 or more)\cr
-    size:\tab size (cm) of largest initial tumour\cr
-    pyridoxine:\tab dummy variable for pyridoxine arm\cr
-    thiotepa:\tab dummy variable for thiotepa arm\cr
+  \describe{
+    \item{\code{subject}}{: patient id}
+    \item{\code{time}}{: observation time}
+    \item{\code{count}}{: cumulative number of tumors}
+    \item{\code{count2}}{: number of new tumors since last observation time}
+    \item{\code{number}}{: initial number of tumours (8=8 or more)}
+    \item{\code{size}}{: size (cm) of largest initial tumour}
+    \item{\code{pyridoxine}}{: dummy variable for pyridoxine arm}
+    \item{\code{thiotepa}}{: dummy variable for thiotepa arm}
   }
 }
-\source{
+\references{
   Byar, D. P. (1980). The Veterans administration study of
   chemoprophylaxis for recurrent stage I bladder tumors: comparisons
   of placebo, pyridoxine, and topical thiotepa. \emph{Bladder Tumors and

@@ -1,4 +1,5 @@
 # exportClasses(DataSetting, Zhang, Huang3, Huang4, Huang4IC, Huang4CIC, HuangScen2)
+useDynLib(spef, .registration = TRUE)
 
 importFrom("graphics", "abline", "plot", "points", "title")
 importFrom("methods", "getClass", "new")
@@ -7,11 +8,18 @@ importFrom("stats", "as.formula", "model.matrix", "optim", "pchisq",
            "rmultinom", "rnorm", "rpois", "runif", "sd", "stepfun",
            "time", "uniroot", "var")
 importFrom("utils", "head", "tail")
-importFrom("survival", coxph, survfit)
+importFrom("graphics", "boxplot")
+importFrom("stats", "approx")
+importFrom("survival", coxph, survfit, Surv)
 importFrom("nleqslv", nleqslv)
 importFrom("plyr", ddply, count)
-importFrom("ggplot2", ggplot, geom_tile, aes, aes_string)
+importFrom("ggplot2", ggplot, geom_tile, aes, aes_string,
+           theme_bw, scale_fill_gradient)
 importFrom("splines", bs)
+importFrom("BB", dfsane, BBoptim)
+importFrom("SQUAREM", squarem)
+importFrom("sm", sm.regression)
+
 
 export(PanelSurv, is.PanelSurv)
 export(panelReg)
