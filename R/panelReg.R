@@ -5,15 +5,18 @@
 ##   doPanelFit.MPL
 ##   doPanelFit.MPLs
 ##   doPanelFit.MLs
-##   doPanelFit.SCM
-##   doPanelFit.SWa
-##   doPanelFit.SWb
-##   doPanelFit.SWc
+##   doPanelFit.SC
+##   doPanelFit.EE.HSWc
+##   doPanelFit.EE.HSWm
+##   doPanelFit.EE.SWa
+##   doPanelFit.EE.SWb
+##   doPanelFit.EE.SWc
 ##   doPanelFit.Engine.Bootstrap
 ##   doPanelFit.AEE.Impute
 ##   doPanelFit.AEEX.Impute
 ##   doPanelFit.AEE.Sandwich
 ##   doPanelFit.AEEX.Sandwich
+##   doPanelFit.SC.smBoot
 ## Export functions :
 ##   panelReg
 
@@ -23,10 +26,8 @@
 doPanelFit.AEE <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
     N <- nrow(panelMatrix)
     K <- ncol(panelMatrix)
-
     eStep <- function(lambda) {
         e <- matrix(0, N, K)
-
         for (i in 1:N) {
             end <- which(!is.na(panelMatrix[i, ]))
             start <- c(1, head(end, -1) + 1)
@@ -38,20 +39,17 @@ doPanelFit.AEE <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
         }
         e
     }
-
     # ncol(X) dimensional nonlinear equation
     f <- function(beta, e) {
         lambda <- c(colSums(e)) / c(t(r) %*% exp(X %*% beta))
         c(t(X) %*% (rowSums(e) - c(exp(X %*% beta)) * c(r %*% lambda)))
     }
-
     sStep <- function(f, beta, e) {
         if (ncol(X) == 1) {
             beta <- uniroot(f, engine@interval, e=e)$root
         } else {
             beta <- nleqslv(beta, function(x) f(x, e))$x
         }
-
         lambda <- colSums(e) / c(t(r) %*% exp(X %*% beta))
         list(beta=beta,
              lambda=lambda)
@@ -68,7 +66,6 @@ doPanelFit.AEE <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
         e[i, 1:mi] <- rep(panelMatrix[i, set] / dset, dset)
         r[i, 1:mi] <- 1
     }
-
     convergence <- 1
     sRes <- sStep(f, engine@betaInit, e)
     for (i in 2:engine@maxIter) {
@@ -84,7 +81,6 @@ doPanelFit.AEE <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
         }
     }
     iter <- i
-
     list(beta=sRes$beta,
          baseline=stepfun(timeGrid, cumsum(c(0, sRes$lambda))),
          timeGrid=timeGrid,
@@ -444,19 +440,20 @@ doPanelFit.MLs <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
 }
 
 ##############################################################################
-## Scale-Change model (SCM), informative censoring
+## Scale-Change model (SC), informative censoring
 ##############################################################################
 
-doPanelFit.SCM <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
+doPanelFit.SC <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
     id <- DF[,1]
     X <- as.matrix(DF[, -(1:3)])
     tij <- DF[,2]
     mt <- DF[,3]
     cluster <- as.numeric(unlist(lapply(split(id, id), function(x) 1:length(x))))
     fit <- dfsane(engine@betaInit, pcEq, X = X, tij = tij, mt = mt,
-                   cluster = cluster, id = id, conv.tol = engine@absTol,
-                   alertConvergence = FALSE, quiet = TRUE,
-                   control = list(NM = FALSE, M = 100, noimp = 50, trace = FALSE))
+                  cluster = cluster, id = id, conv.tol = engine@absTol,
+                  alertConvergence = FALSE, quiet = TRUE,
+                  control = list(NM = FALSE, M = 100, noimp = 50,
+                                 tol = engine@absTol, trace = FALSE))
     beta <- fit$par
     if (beta %*% beta > 1e4) {
         fit <- BBoptim(engine@betaInit, fn = function(x)
@@ -484,11 +481,12 @@ doPanelFit.SCM <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
     ## baseline <- with(lamSm, approx(eval.points, estimate, timeGrid, "constant", 50, 0, 1)$y)
     list(beta = beta, baseline = with(lamSm, stepfun(eval.points[order(eval.points)],
                                                      c(0, estimate[order(eval.points)]))),
-         timeGrid = timeGrid, lamSm = lamSm, convergence = convergence, iter = iter)
+         timeGrid = sort(lamSm$eval.points), Ly = Ly, lamSm = lamSm,
+         convergence = convergence, iter = iter)
 }
 
 ## smooth bootstrap for scale change model only
-doPanelFit.SCM.smBoot <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
+doPanelFit.SC.smBoot <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
     res <- doPanelFit(DF, panelMatrix, timeGrid, X, engine, NULL)
     id <- DF[,1]
     X <- as.matrix(DF[, -(1:3)])
@@ -496,7 +494,11 @@ doPanelFit.SCM.smBoot <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) 
     mt <- DF[,3]
     cluster <- as.numeric(unlist(lapply(split(id, id), function(x) 1:length(x))))
     bt <- getBtInf(X, tij, mt, cluster, id, res$beta, stdErr@R, res$lamSm$data, method = "smooth")
-    converged <- -which(rowSums(bt$lami) == 0 |rowSums(bt$lami) > 1e5)
+    ## converged <- -which(rowSums(bt$lami) == 0 |rowSums(bt$lami) > 1e5)
+    sT <- exp(tij * exp(X %*% res$beta))
+    bt$lami <- bt$lami[,order(sT)]
+    converged <- ifelse(rowSums(bt$lami) == 0 |rowSums(bt$lami) > 1e5, FALSE, TRUE)
+    converged <- converged & (apply(bt$covmat, 1, function(x) sum(x^2)) < sum(res$beta^2) * 100)
     ## converged <- apply(bt$covmat, 1, function(x) (as.numeric(x %*% x) < 1e4))
     ## converged2 <- apply(bt$lami, 
     betaVar <- as.matrix(var(bt$covmat[converged, ], na.rm = TRUE))
@@ -508,10 +510,79 @@ doPanelFit.SCM.smBoot <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) 
                 R = length(converged)))
 }
 
+################################################################################
+## Hu, Sun and Wei's method (HSWc), independent observation and censoring times
+## Implemented from Sun's book "U_{II}^C
+################################################################################
+doPanelFit.EE.HSWc <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
+    N <- nrow(panelMatrix)
+    K <- ncol(panelMatrix)
+    yi <- aggregate(time ~ ID, data = DF, max)$time
+    tij <- DF$time
+    XX <- as.matrix(DF[,-c(1:3)])
+    XX <- XX - outer(rep(1, nrow(XX)), colMeans(X))
+    X <- X - outer(rep(1, nrow(X)), colMeans(X))
+    txy <- outer(tij, yi, "<=")
+    hi <- sapply(1:N, function(x) tij %in% with(DF, split(time, ID))[[x]])
+    Nij <- aggregate(count ~ ID, data = DF, sum)$count
+    f <- function(beta) {
+        s1 <- t(txy * hi) %*% (c(exp(XX %*% beta)) * XX)
+        s0 <- t(txy * hi) %*% (c(exp(XX %*% beta)) * matrix(1, nrow(XX), ncol(XX)))
+        colSums(Nij * (X - s1 / s0))
+    }
+    if (ncol(X) == 1) {
+        beta <- uniroot(f, engine@interval)$root
+    } else {
+        beta <- nleqslv(engine@betaInit, f)$x
+    }
+    list(beta=beta,
+         baseline = function(x) rep(NA, length(x)),
+         timeGrid=timeGrid,
+         convergence=0)
+}
+
+################################################################################
+## Hu, Sun and Wei's method (HSWc), dependent observation and censoring times
+## Implemented from Sun's book "U_{II}^M
+################################################################################
+doPanelFit.EE.HSWm <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
+    N <- nrow(panelMatrix)
+    K <- ncol(panelMatrix)
+    yi <- aggregate(time ~ ID, data = DF, max)$time
+    tij <- DF$time
+    XX <- as.matrix(DF[,-c(1:3)])
+    XX <- XX - outer(rep(1, nrow(XX)), colMeans(X))
+    txy <- outer(tij, yi, "<=")
+    hi <- sapply(1:N, function(x) tij %in% with(DF, split(time, ID))[[x]])
+    Nij <- aggregate(count ~ ID, data = DF, sum)$count
+    X <- X - outer(rep(1, nrow(X)), colMeans(X))
+    nm <- names(DF)[-c(1:3)]
+    ## Model observation times
+    obsTimeDF <- ddply(DF, "ID", transform, start=c(0, head(time, -1)), end=time, event=1)
+    obsTimeFml <- as.formula(paste("Surv(start, end, event) ~ ", paste(nm, collapse="+"),
+                                   "+ cluster(ID)"))
+    obsTimeFit <- coxph(obsTimeFml, obsTimeDF)    
+    f <- function(beta) {
+        s1 <- t(txy) %*% (c(exp(XX %*% beta)) * XX)
+        s0 <- t(txy) %*% (c(exp(XX %*% beta)) * matrix(1, nrow(XX), ncol(XX)))
+        colSums(Nij * (X - s1 / s0))
+    }
+    if (ncol(X) == 1) {
+        beta <- uniroot(f, engine@interval)$root
+    } else {
+        beta <- nleqslv(engine@betaInit, f)$x
+    }
+    beta <- beta - obsTimeFit$coefficients
+    list(beta=beta,
+         baseline=function(x) rep(NA, length(x)),
+         timeGrid=timeGrid,
+         convergence=0)
+}
+
 ##############################################################################
 ## Sun and Wei's method (SWa), independent observation and censoring times
 ##############################################################################
-doPanelFit.SWa <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
+doPanelFit.EE.SWa <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
     N <- nrow(panelMatrix)
     K <- ncol(panelMatrix)
     X <- X - outer(rep(1, nrow(X)), colMeans(X))
@@ -560,7 +631,7 @@ doPanelFit.SWa <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
 # conditional independent observation times and independent censoring times
 ##############################################################################
 
-doPanelFit.SWb <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
+doPanelFit.EE.SWb <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
     N <- nrow(panelMatrix)
     K <- ncol(panelMatrix)
     X <- X - outer(rep(1, nrow(X)), colMeans(X))
@@ -594,7 +665,7 @@ doPanelFit.SWb <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
 # conditional independent observation and censoring times
 ##############################################################################
 
-doPanelFit.SWc <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
+doPanelFit.EE.SWc <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
     N <- nrow(panelMatrix)
     K <- ncol(panelMatrix)
     X <- X - outer(rep(1, nrow(X)), colMeans(X))
@@ -673,6 +744,13 @@ doPanelFit.Engine.Bootstrap <- function(DF, panelMatrix, timeGrid, X, engine, st
         convergence[i] <- res2$convergence
     }
     converged <- which(convergence == 0)
+    if (sum(convergence != 0) > 0) ## warning("Some bootstrap samples failed to converge")
+        print("Warning: Some bootstrap samples failed to converge")
+    if (all(convergence != 0) || sum(convergence == 0) == 1) {
+        ## warning("Some bootstrap samples failed to converge")
+        print("Warning: some bootstrap samples failed to converge")
+        converged <- 1:R
+    }
     betaVar <- var(betaMatrix[converged, ], na.rm=TRUE)
     betaSE <- sqrt(diag(as.matrix(betaVar)))
     baselineSE <- sd(baselineMatrix[converged, ], na.rm=TRUE)
@@ -938,22 +1016,20 @@ setClass("Engine",
          representation(betaInit="numeric", interval="numeric",
                         maxIter="numeric", absTol="numeric", relTol="numeric"),
          prototype(betaInit=0, interval=c(-5, 5),
-                   maxIter=150, absTol=1e-6, relTol=1e-6),
+                   maxIter=500, absTol=1e-4, relTol=1e-4),
          contains="VIRTUAL")
 
 setClass("AEE",
          representation(),
          prototype(),
          contains="Engine")
-
 setClass("AEEX",
          representation(a="numeric"),
          prototype(maxIter=500, a=0.1),
          contains="Engine")
-
 setClass("HWZ",
          representation(unitWeight="logical", adjust="character"),
-         prototype(maxIter=500, absTol=1e-4,
+         prototype(maxIter=150, absTol=1e-4,
                    unitWeight=TRUE, adjust="W"),
          validity=function(object) {
              object@adjust <- match.arg(object@adjust,
@@ -961,45 +1037,29 @@ setClass("HWZ",
              return(TRUE)
          },
          contains="Engine")
-
-setClass("MPL",
-         contains="Engine")
-
-setClass("MPLs",
-         contains="Engine")
-
-setClass("MLs",
-         contains="Engine")
-
-setClass("SCM",
-         contains="Engine")
-
-setClass("SWa",
-         contains="Engine")
-
-setClass("SWb",
-         contains="Engine")
-
-setClass("SWc",
-         contains="Engine")
+setClass("MPL", contains="Engine")
+setClass("MPLs", contains="Engine")
+setClass("MLs", contains="Engine")
+setClass("SC", contains="Engine")
+setClass("EE.HSWc", contains="Engine")
+setClass("EE.HSWm", contains="Engine")
+setClass("EE.SWa", contains="Engine")
+setClass("EE.SWb", contains="Engine")
+setClass("EE.SWc", contains="Engine")
 
 setClass("StdErr")
-
 setClass("Bootstrap",
          representation(R="numeric"),
          prototype(R=30),
          contains="StdErr")
-
 setClass("Impute",
          representation(R="numeric"),
          prototype(R=30),
          contains="StdErr")
-
 setClass("Sandwich",
          representation(),
          prototype(),
          contains="StdErr")
-
 setClass("smBootstrap",
          representation(R = "numeric"),
          prototype(R=30),
@@ -1038,20 +1098,28 @@ setMethod("doPanelFit",
           doPanelFit.MLs)
 
 setMethod("doPanelFit",
-          signature(engine="SCM", stdErr="NULL"),
-          doPanelFit.SCM)
+          signature(engine="SC", stdErr="NULL"),
+          doPanelFit.SC)
 
 setMethod("doPanelFit",
-          signature(engine="SWa", stdErr="NULL"),
-          doPanelFit.SWa)
+          signature(engine="EE.HSWc", stdErr="NULL"),
+          doPanelFit.EE.HSWc)
 
 setMethod("doPanelFit",
-          signature(engine="SWb", stdErr="NULL"),
-          doPanelFit.SWb)
+          signature(engine="EE.HSWm", stdErr="NULL"),
+          doPanelFit.EE.HSWm)
 
 setMethod("doPanelFit",
-          signature(engine="SWc", stdErr="NULL"),
-          doPanelFit.SWc)
+          signature(engine="EE.SWa", stdErr="NULL"),
+          doPanelFit.EE.SWa)
+
+setMethod("doPanelFit",
+          signature(engine="EE.SWb", stdErr="NULL"),
+          doPanelFit.EE.SWb)
+
+setMethod("doPanelFit",
+          signature(engine="EE.SWc", stdErr="NULL"),
+          doPanelFit.EE.SWc)
 
 setMethod("doPanelFit",
           signature(engine="Engine", stdErr="Bootstrap"),
@@ -1074,16 +1142,18 @@ setMethod("doPanelFit",
           doPanelFit.AEEX.Sandwich)
 
 setMethod("doPanelFit",
-          signature(engine="SCM", stdErr="smBootstrap"),
-          doPanelFit.SCM.smBoot)
+          signature(engine="SC", stdErr="smBootstrap"),
+          doPanelFit.SC.smBoot)
 
 ##############################################################################
 ## User's Main Function
 ##############################################################################
 
 panelReg <- function(formula, data,
-                     method=c("AEE", "AEEX", "HWZ", "MPL", "MPLs", "MLs", "SCM", "SWa", "SWb", "SWc"),
-                     se = c("NULL", "smBootstrap", "Bootstrap", "Impute", "Sandwich"), control=list()) {
+                     method=c("AEE", "AEEX", "HWZ", "MPL", "MPLs", "MLs", "SC",
+                              "EE.SWa", "EE.SWb", "EE.SWc", "EE.HSWc", "EE.HSWm"),
+                     se = c("NULL", "smBootstrap", "Bootstrap", "Impute", "Sandwich"),
+                     control = list()) {
     method <- match.arg(method)
     se <- match.arg(se)
     Call <- match.call()
@@ -1122,7 +1192,10 @@ panelReg <- function(formula, data,
     fit <- doPanelFit(DF=DF, panelMatrix=obj$panelMatrix, timeGrid=obj$timeGrid,
                       X=X, engine=engine, stdErr=stdErr)
     names(fit$beta) <- names(DF)[-c(1:3)]
+    ## ~1?
+    if (formula == ~1) fit$beta <- NULL
     fit$call <- Call
+    fit$method = method
     class(fit) <- "panelReg"
     fit
 }
@@ -1143,9 +1216,13 @@ pcEq <- function(alpha, X, tij, mt, cluster, id, conv.tol = 1e-2) {
     if (max(abs(exp(sT))) == Inf || all(exp(sT) == 0))
         Ft <- getLam(sT, cluster, id, mt, conv.tol = conv.tol)
     else Ft <- getLam(exp(sT), cluster, id, mt, conv.tol = conv.tol)
+    ## tmp <- Ft[cumsum(unlist(lapply(split(tij, id), which.max)))]
+    ## mi[which(tmp < .01)] <- mi[which(tmp < .01)] + .02
+    ## tmp[which(tmp < .01)] <- tmp[which(tmp < .01)] + .02
+    ## Ly <- mean(mi / tmp, na.rm = TRUE)
     Ly <- mean(mi / Ft[cumsum(unlist(lapply(split(tij, id), which.max)))], na.rm = TRUE)
     if (Ly > 1e5) 
-        Ly <- mean((mi + 0.02) / (Ft[cumsum(unlist(lapply(split(tij, id), which.max)))] + 0.02),
+        Ly <- mean((mi + .02) / (Ft[cumsum(unlist(lapply(split(tij, id), which.max)))] + .02),
                    na.rm = TRUE)
     res <- vector("double", p)
     res <- .C("alphaEq1", as.double(X[which(cluster == 1),]), as.double(Ft[yid] * Ly),
@@ -1156,9 +1233,8 @@ pcEq <- function(alpha, X, tij, mt, cluster, id, conv.tol = 1e-2) {
 
 lamEm <- function(f, ordt, tij, id, mt, aijk, bik) {
     p <- diff(f)
-    ## p <- p / sum(p)
-    tmp <- mt * t(apply(aijk, 1, function(x) x * p / sum(x * p)) +
-                  apply(bik, 1, function(x) (1 - x) * p / sum(x * p)))
+    p0 <- rep(p, rep(nrow(bik), ncol(bik)))
+    tmp <- mt * ((aijk * p0) / rowSums(aijk * p0) + (1 - bik) * p0 / rowSums(bik * p0))
     dk <- colSums(tmp * is.finite(tmp), na.rm = TRUE)
     f2 <- cumsum(dk) / sum(dk)
     return(c(0, f2))
@@ -1166,8 +1242,7 @@ lamEm <- function(f, ordt, tij, id, mt, aijk, bik) {
 
 getLam <- function(tij, cluster, id, mt, conv.tol = 1e-2) {
     ki <- unlist(lapply(split(id, id), length))
-    if (sum(ki == 1) > 0) 
-        tmp <- tij[-which(id %in% which(ki == 1))] 
+    if (sum(ki == 1) > 0) tmp <- tij[-which(id %in% names(ki)[which(ki == 1)])]
     else
         tmp <- tij
     tmp <- unique(tmp) ## newly added
@@ -1180,31 +1255,33 @@ getLam <- function(tij, cluster, id, mt, conv.tol = 1e-2) {
     lb <- sapply(1:N, function(x) tijTmp <= ordt[x])
     aijk <- ub * lb
     yi <- unlist(lapply(split(tij, id), max))
-    bik <- apply(sapply(1:N + 1, function(x) yi >= ordt[x]), 2, function(y) rep(y, ki))
+    ## bik <- apply(sapply(1:N + 1, function(x) yi >= ordt[x]), 2, function(y) rep(y, ki))
+    bik <- outer(rep(yi, ki), ordt[-1], ">=")
     f0 <- seq(0, 1, 1 / N)
-    em <- squarem(par = f0, fixptfn = lamEm, ## objfn = lam.loglik,
+    em <- squarem(par = f0, fixptfn = lamEm, objfn = lam.loglik,
                   ordt = ordt, tij = tij,
                   id = id, mt = mt, aijk = aijk, bik = bik,
                   control = list(tol = conv.tol))
-    ## print(em$convergence)
-    em$par <- cumsum(c(0, pmax(0, diff(em$par))))
-    Lambda0 <- sapply(1:length(tij), function(x) em$par[max(which(tij[x] >= ordt))])
+    Lambda0 <- approx(ordt, em$par, tij, yright = max(em$par), yleft = min(em$par))$y
+    ## Lambda0 <- sapply(1:length(tij), function(x) em$par[max(which(tij[x] >= ordt))])
     Lambda0
 }
+
 
 lam.loglik <- function(f, ordt, tij, id, mt, aijk, bik) {
     f <- ifelse(f < 0, 0, f)
     ki <- unlist(lapply(split(id, id), length))
     if (sum(id %in% which(ki == 1)) > 0) {
-        ind <- id[-which(id %in% which(ki == 1))]
-        mti <- mt[-which(id %in% which(ki == 1))]
-        tiji <- tij[-which(id %in% which(ki == 1))]
+        ind <- id[-which(id %in% names(ki)[which(ki == 1)])]
+        mti <- mt[-which(id %in% names(ki)[which(ki == 1)])]
+        tiji <- tij[-which(id %in% names(ki)[which(ki == 1)])]
     } else {
         ind <- id
         mti <- mt
         tiji <- tij
     }
-    Lambda0 <- sapply(1:length(tiji), function(x) f[max(which(tiji[x] >= ordt))])
+    ## Lambda0 <- sapply(1:length(tiji), function(x) f[max(which(tiji[x] >= ordt))])
+    Lambda0 <- approx(ordt, f, tiji, yleft = min(f), yright = max(f))$y
     -sum(mti * log(1 + unlist(lapply(split(Lambda0, ind), function(x) diff(c(0,x)) / max(x)))))
 }
 
@@ -1228,7 +1305,8 @@ getBtInf <- function(X, tij, mt, cluster, id, a, B, lamSm, conv.tol = 1e-2, meth
             idi <- rep(1:length(smp), unlist(sapply(smp, function(x) sum(id == x))))
             covmat[k,] <-  dfsane(a, pcEq, X = Xi, tij = tiji, mt = mti, cluster = clusteri, id = idi,
                                   conv.tol = conv.tol, alertConvergence = FALSE, quiet = TRUE,
-                                  control = list(NM = FALSE, M = 100, noimp = 50, trace = FALSE))$par
+                                  control = list(NM = FALSE, M = 100, noimp = 50, trace = FALSE,
+                                                 tol = conv.tol))$par
             if (covmat[k,] %*% covmat[k,] > 1e4)
                 covmat[k, ] <- BBoptim(a * 0, fn = function(x)
                     sum(pcEq(x, X = Xi, tij = tiji, mt = mti, cluster = clusteri, id = idi,
@@ -1255,7 +1333,8 @@ getBtInf <- function(X, tij, mt, cluster, id, a, B, lamSm, conv.tol = 1e-2, meth
             }
             covmat[k, ] <-  dfsane(a, pcEq, X = Xi, tij = tiji, mt = mti, cluster = clusteri, id = idi,
                                    conv.tol = conv.tol, alertConvergence = FALSE, quiet = TRUE,
-                                   control = list(NM = FALSE, M = 100, noimp = 50, trace = FALSE))$par
+                                   control = list(NM = FALSE, M = 100, noimp = 50, trace = FALSE,
+                                                  tol = conv.tol))$par
             if (covmat[k,] %*% covmat[k,] > 1e4)
                 covmat[k, ] <- BBoptim(a * 0, fn = function(x)
                     sum(pcEq(x, X = Xi, tij = tiji, mt = mti, cluster = clusteri, id = idi,
@@ -1281,7 +1360,8 @@ getBtInf <- function(X, tij, mt, cluster, id, a, B, lamSm, conv.tol = 1e-2, meth
             }
             covmat[k, ] <-  dfsane(a, pcEq, X = Xi, tij = tiji, mt = mti, cluster = clusteri, id = idi,
                                    conv.tol = conv.tol, alertConvergence = FALSE, quiet = TRUE,
-                                   control = list(NM = FALSE, M = 100, noimp = 50, trace = FALSE))$par
+                                   control = list(NM = FALSE, M = 100, noimp = 50, trace = FALSE,
+                                                  tol = conv.tol))$par
             if (covmat[k,] %*% covmat[k,] > 1e4)
                 covmat[k, ] <- BBoptim(a * 0, fn = function(x)
                     sum(pcEq(x, X = Xi, tij = tiji, mt = mti, cluster = clusteri, id = idi,

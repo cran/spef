@@ -7,10 +7,11 @@ blaTum
 }
 \description{A data frame contains data on recurrences of bladder
   cancer, used by many people to demonstrate methodology for recurrent
-  event modelling. %% This data set is adapted from
-  %% \url{http://www.blackwellpublishing.com/rss/Volumes/Bv62p2.htm},
-  Thd data contains records of 85 patients from two treatment arms:
-  48 are from the placebo arm, and the rest 37 are from the thiotepa arm.
+  event modelling. This data set is adapted from
+%  \url{http://www.blackwellpublishing.com/rss/Volumes/Bv62p2.htm},
+  \url{http://onlinelibrary.wiley.com/journal/10.1111/(ISSN)1467-9868/homepage/62_2.htm},
+  containing records of 85 patients from two treatment arms: 48 are from
+  the placebo arm, and the rest 37 are from the thiotepa arm.
 }
 \format{
   \tabular{ll}{

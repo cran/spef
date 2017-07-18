@@ -1,4 +1,3 @@
-# exportClasses(DataSetting, Zhang, Huang3, Huang4, Huang4IC, Huang4CIC, HuangScen2)
 useDynLib(spef, .registration = TRUE)
 
 importFrom("graphics", "abline", "plot", "points", "title")
@@ -10,7 +9,7 @@ importFrom("stats", "as.formula", "model.matrix", "optim", "pchisq",
 importFrom("utils", "head", "tail")
 importFrom("graphics", "boxplot")
 importFrom("stats", "approx")
-importFrom("survival", coxph, survfit, Surv)
+importFrom("survival", coxph, survfit, Surv, cluster)
 importFrom("nleqslv", nleqslv)
 importFrom("plyr", ddply, count)
 importFrom("ggplot2", ggplot, geom_tile, aes, aes_string,
@@ -19,13 +18,14 @@ importFrom("splines", bs)
 importFrom("BB", dfsane, BBoptim)
 importFrom("SQUAREM", squarem)
 importFrom("sm", sm.regression)
-
+importFrom("stats", "aggregate")
 
 export(PanelSurv, is.PanelSurv)
 export(panelReg)
-# export(simu)
 
 S3method(plot, PanelSurv)
 S3method(print, panelReg)
+S3method(coef, panelReg)
+S3method(vcov, panelReg)
 S3method(plot, panelReg)
 S3method(plot, isplineFun)

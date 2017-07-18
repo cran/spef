@@ -12,11 +12,13 @@
   equations (AEE, AEEX), Huang-Wang-Zhang's method (HWZ), Zhang's
   maximum pseudolikelihood (MPL), Maximum pseudolikelihood with
   I-Splines (MPLs), Maximum likelihood with I-Splines (MLs),
-  and Sun-Wei's method (SWa, SWb, SWc).
+  Sun-Wei's method (EE.SWa, EE.SWb, EE.SWc), and Hu-Sun-Wei's method
+  (EE.HSWc, EE.HSWm).
 }
 \usage{
 panelReg(formula, data,
-         method=c("AEE", "AEEX", "HWZ", "MPL", "MPLs", "MLs", "SCM", "SWa", "SWb", "SWc"),
+         method=c("AEE", "AEEX", "HWZ", "MPL", "MPLs", "MLs", "SC",
+                  "EE.SWa", "EE.SWb", "EE.SWc", "EE.HSWc", "EE.HSWm"),
          se=c("NULL", "smBootstrap", "Bootstrap", "Impute", "Sandwich"), control=list())
 }
 \arguments{
@@ -57,17 +59,10 @@ panelReg(formula, data,
   multiplicative frailty. Similarly, the three scenarios apply to the
   censoring time.
 
-  \code{"AEE"} and \code{AEEX} are the augmented estimationg
+  \code{"AEE"} and \code{"AEEX"} are the augmented estimationg
   equation methods under conditional independent censoring and
   informative censoring respectively. Both allow informative observation
   times.
-
-  \code{"SCM"} is semiparametric scale-change model for the rate
-  model. The observation time process is allowed to be correlated with
-  the underlying recurrent event process through a frailty variable,
-  which does not need to be specified. The model also allows marginal
-  interpretations for the regression parameters and connects naturally
-  with AFT model.
   
   \code{"HWZ"} is Huang-Wang-Zhang's method. It allows both
   information observation times and informative censoring time. It does
@@ -84,13 +79,27 @@ panelReg(formula, data,
   independent observation times and censoring time, and a Poisson
   underlying event process.
 
-  \code{"SWa"}, \code{"SWb"} and \code{"SWc"} are Sun-Wei's
-  methods. The first assumes independent observation times and censoring
+  \code{"SC"} is semiparametric scale-change model for the rate
+  model. The observation time process is allowed to be correlated with
+  the underlying recurrent event process through a frailty variable,
+  which does not need to be specified. The model also allows marginal
+  interpretations for the regression parameters and connects naturally
+  with AFT model.
+    
+  \code{"EE.SWa"}, \code{"EE.SWb"} and \code{"EE.SWc"} are estimating
+  equation approaches based on Sun-Wei's methods.
+  The first assumes independent observation times and censoring
   time. The second assumes conditional independent observation times but
   independent censoring time. The third assumes conditional independent
   observation times and censoring time. All three variates work on
   centered covariates and avoid estimating the baseline mean.
 
+  \code{"EE.HSWc"} and \code{"EE.HSWm"} are estimating
+  equation approaches based on Hu-Sun-Wei's methods.
+  The first assumes independent observation times and censoring
+  time. The second assumes conditional independent observation times but
+  independent censoring time. Both variates work on centered covariates
+  and avoid estimating the baseline mean.
 
   For standard errors estimation method:
 
@@ -142,6 +151,10 @@ panelReg(formula, data,
   with informative observation times. \emph{Biometrika} \bold{93}(4),
   763--776.
 
+  Hu, X. J., Sun, J. and Wei, L. J. (2003). Regression parameter
+  estimation from panel counts. Scandinavian Journal of Statistics, 30,
+  25--43.
+  
   Lu, M., Zhang, Y., and Huang, J. (2007). Estimation of the mean
   function with panel count data using monotone polynomial
   splines. \emph{Biometrika} \bold{94}(3), 705--718.
@@ -162,14 +175,15 @@ panelReg(formula, data,
 \dontrun{
 data(blaTum)
 
-# Fit the bladder tumor data set
+## Fit the bladder tumor data set
 formula <- PanelSurv(id, time, count) ~ num + size + treatment
 
-panelReg(formula, data=blaTum, method="AEE", se="Sandwich")
-panelReg(formula, data=blaTum, method="AEEX", se="Impute", control=list(a=0.1, R=50))
-panelReg(formula, data=blaTum, method="HWZ", se="Bootstrap", control=list(R=50))
-panelReg(formula, data=blaTum, method="MLs", se="NULL")
-panelReg(formula, data=blaTum, method="SWa", se="Bootstrap", control=list(R=50))
+panelReg(formula, data = blaTum, method = "AEE", se = "Sandwich")
+panelReg(formula, data = blaTum, method = "AEEX", se = "Impute", control = list(a = 0.1, R = 30))
+panelReg(formula, data = blaTum, method = "HWZ", se = "Bootstrap", control = list(R = 30))
+panelReg(formula, data = blaTum, method = "MLs", se = "NULL")
+panelReg(formula, data = blaTum, method = "EE.SWa", se = "Bootstrap", control = list(R = 30))
+panelReg(formula, data = blaTum, method = "EE.HSWc", se = "Bootstrap", control = list(R = 30))
 }
 }
 \keyword{survival}

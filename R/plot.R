@@ -14,15 +14,18 @@ doPanelFitPlot.stepfun <- function(baseline, timeGrid, baselineSE, ...) {
 }
 
 ##############################################################################
-doPanelFitPlot.stepfun.se <- function(baseline, timeGrid, baselineSE, ...) {
+doPanelFitPlot.stepfun.se <- function(baseline, timeGrid, baselineSE,
+                                      baselineMat = NULL, method =NULL,...) {
     y <- baseline(timeGrid)
-
-    low <- y * exp(- 1.96 * baselineSE / y)
-    high <- y * exp(1.96 * baselineSE / y)
-
+    if (method == "SC") {
+        low <- pmin(2 * y - apply(baselineMat, 2, function(x) quantile(x, .025)), 1)
+        high <- pmax(2 * y - apply(baselineMat, 2, function(x) quantile(x, .975)), 0)
+    } else {
+        low <- y * exp(- 1.96 * baselineSE / y)
+        high <- y * exp(1.96 * baselineSE / y)
+    }
     lowFun <- stepfun(timeGrid, c(0, low))
     highFun <- stepfun(timeGrid, c(0, high))
-
     plot(highFun, do.points=FALSE, lty=2, xlab="", ylab = "", main="Cumulative Baseline Mean")
     title(xlab = "Time", ylab = expression(hat(Lambda[0])(t)), line = 2, cex.lab = 1)
     plot(baseline, do.points=FALSE, add=TRUE, ...)
@@ -53,7 +56,7 @@ doPanelFitPlot.isplineFun.se <- function(baseline, timeGrid, baselineSE, ...) {
 # Method dispatch
 ##############################################################################
 setGeneric("doPanelFitPlot",
-           function(baseline, timeGrid, baselineSE, ...) {
+           function(baseline, timeGrid, baselineSE, baselineMat, method, ...) {
                standardGeneric("doPanelFitPlot")
            })
 
@@ -81,36 +84,65 @@ setMethod("doPanelFitPlot",
 # Plot a PanelReg object
 ##############################################################################
 plot.panelReg <- function(x, ...) {
-    doPanelFitPlot(baseline=x$baseline,
-                   timeGrid=x$timeGrid,
-                   baselineSE=x$baselineSE, ...)
+    doPanelFitPlot(baseline=x$baseline, timeGrid=x$timeGrid,
+                   baselineSE=x$baselineSE, baselineMat=x$baselineMat,
+                   method=x$method,...)
 }
 
 ##############################################################################
 # Print a panelReg object
 ##############################################################################
 print.panelReg <- function(x, digits=max(options()$digits - 4, 3), ...) {
+    ## if (class(object) != "ipwCoxph") stop("Most be ipwCoxph class")
     savedig <- options(digits = digits)
     on.exit(options(savedig))
-
-    coef <- x$beta
-    if (is.null(x$betaSE))
-        se <- rep(NA, length(coef))
-    else
-        se <- x$betaSE
-
-    tmp <- data.frame(coef, exp(coef), se, coef/se,
-                      signif(1 - pchisq((coef/ se)^2, 1), digits - 1))
-
-    dimnames(tmp) <- list(names(coef),
-                          c("coef", "exp(coef)", "se(coef)", "z", "Pr(>|z|)"))
-
-    # Print results
+    coef <- x$coefficients
+    se <- sqrt(diag(x$var))
+    coef.T <- x$coefficients.T
+    se.T <- sqrt(diag(x$var.T))
+    ## Print results
     cat("\n")
     cat("Call:\n")
     dput(x$call)
     cat("\n")
-    printCoefmat(tmp, dig.tst=max(1, min(5, digits)))
+    if (!is.null(x$coefficients)) {
+        tmp <- data.frame(coef, exp(coef), se,
+                          z = coef/se, p = signif(1 - pchisq((coef/ se)^2, 1), digits - 1))
+        tmp.T <- data.frame(coef.T, exp(coef.T), se.T,
+                            z = coef.T/se.T, p = signif(1 - pchisq((coef.T/ se.T)^2, 1), digits - 1))
+        dimnames(tmp) <- list(names(coef), c("coef", "exp(coef)", "se(coef)", "z", "Pr(>|z|)"))
+        dimnames(tmp.T) <- list(names(coef.T), c("coef", "exp(coef)", "se(coef)", "z", "Pr(>|z|)"))
+        cat("Failure time:")
+        cat("\n")
+        printCoefmat(tmp, dig.tst=max(1, min(5, digits)))
+        cat("\n")
+        cat("Inverse truncation time:")
+        cat("\n")
+        printCoefmat(tmp.T, dig.tst=max(1, min(5, digits)))
+    } else {cat("Null model")}
     cat("\n")
     invisible()
+}
+
+##############################################################################
+# Print coef(panelReg)
+##############################################################################
+coef.panelReg <- function(object, ...) {
+    if (class(object) != "panelReg") stop("Most be panelReg class")
+    if (is.null(object$beta)) return(NULL)
+    else return(object$beta)
+}
+
+##############################################################################
+# Print vcov(panelReg)
+##############################################################################
+vcov.panelReg <- function(object, ...) {
+    if (class(object) != "panelReg") stop("Most be panelReg class")
+    if (is.null(object$betaVar)) {
+        return(NULL)
+    } else {
+        if (is.null(dim(object$betaVar))) names(object$betaVar) <- names(object$beta)
+        else colnames(object$betaVar) <- rownames(object$betaVar) <- names(object$beta)
+        return(object$betaVar)
+    }
 }

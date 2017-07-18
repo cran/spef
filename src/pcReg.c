@@ -27,7 +27,7 @@ void plLambda(double *sl, double *tij, double *yi, double *weights,
 	res[j] = res[j - 1] + (dl / Rl);
     }
   }
-  res;
+  //res;
 }
 
 void alphaEq1(double *X, double *Lambda, int *mt, int *n, int *p, double *res) {
@@ -47,5 +47,5 @@ void alphaEq1(double *X, double *Lambda, int *mt, int *n, int *p, double *res) {
       }
     }
   }
-  res;
+  //res;
 }		 

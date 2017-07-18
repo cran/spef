@@ -1,5 +1,13 @@
+2017-07-17 Steven Chiou <schiou@utdallas.edu>
+    * Changed maintainer's email
+	* Added a warning message when Bootstrap samples failed to converge.
+	* Added coef and vcov.
+	* Speed improvement.
+	* Changed method names for SWa, SWb, SWc, HSWa, and HSWb.
 2017-03-23 Steven Chiou <schiou@hsph.harvard.edu>
-	* Add scale change model
+	* Added HSWa and HSWb from Section 5.4 of Sun's book
+2017-03-23 Steven Chiou <schiou@hsph.harvard.edu>
+	* Added scale change model
 2016-09-21 Steven Chiou <schiou@hsph.harvard.edu>
 	* Updated references.
 2016-08-01 Steven Chiou <schiou@hsph.harvard.edu>
