@@ -1,5 +1,8 @@
+2017-08-12 Steven Chiou <schiou@utdallas.edu>
+	* Removed skiTum and added a simulated replacement
+	* Fix some bugs on display
 2017-07-17 Steven Chiou <schiou@utdallas.edu>
-    * Changed maintainer's email
+        * Changed maintainer's email
 	* Added a warning message when Bootstrap samples failed to converge.
 	* Added coef and vcov.
 	* Speed improvement.

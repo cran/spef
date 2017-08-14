@@ -1,6 +1,6 @@
 Package: spef
-Version: 1.0-4
-Date: 2017-07-10
+Version: 1.0-5
+Date: 2017-08-10
 Title: Semiparametric Estimating Functions
 Author: Sy Han (Steven) Chiou, Xiaojing Wang and Jun Yan
 Maintainer: Sy Han (Steven) Chiou <schiou@utdallas.edu>
@@ -13,6 +13,6 @@ LazyData: no
 Imports: methods, survival, nleqslv, ggplot2, plyr, splines, BB, sm,
         SQUAREM
 NeedsCompilation: yes
-Packaged: 2017-07-17 22:07:49 UTC; steven
+Packaged: 2017-08-12 23:36:16 UTC; steven
 Repository: CRAN
-Date/Publication: 2017-07-18 22:20:44 UTC
+Date/Publication: 2017-08-14 04:15:23 UTC

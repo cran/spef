@@ -17,7 +17,7 @@
 }
 \usage{
 panelReg(formula, data,
-         method=c("AEE", "AEEX", "HWZ", "MPL", "MPLs", "MLs", "SC",
+         method=c("AEE", "AEEX", "HWZ", "MPL", "MPLs", "MLs", "AMM",
                   "EE.SWa", "EE.SWb", "EE.SWc", "EE.HSWc", "EE.HSWm"),
          se=c("NULL", "smBootstrap", "Bootstrap", "Impute", "Sandwich"), control=list())
 }

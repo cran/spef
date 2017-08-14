@@ -1,10 +1,10 @@
-# Internal functions :
-#   doPanelFitPlot.stepfun
-#   doPanelFitPlot.stepfun.stepfun
-#   doPanelFitPlot.isplineFun
-# Export functions :
-#   plot.panelReg
-#   print.panelReg
+## Internal functions :
+##   doPanelFitPlot.stepfun
+##   doPanelFitPlot.stepfun.stepfun
+##   doPanelFitPlot.isplineFun
+## Export functions :
+##   plot.panelReg
+##   print.panelReg
 
 ##############################################################################
 doPanelFitPlot.stepfun <- function(baseline, timeGrid, baselineSE, ...) {
@@ -93,32 +93,21 @@ plot.panelReg <- function(x, ...) {
 # Print a panelReg object
 ##############################################################################
 print.panelReg <- function(x, digits=max(options()$digits - 4, 3), ...) {
-    ## if (class(object) != "ipwCoxph") stop("Most be ipwCoxph class")
     savedig <- options(digits = digits)
     on.exit(options(savedig))
-    coef <- x$coefficients
-    se <- sqrt(diag(x$var))
-    coef.T <- x$coefficients.T
-    se.T <- sqrt(diag(x$var.T))
+    coef <- x$beta
+    se <- sqrt(diag(x$betaVar))
+    if(all(dim(se) == 0) & !is.null(dim(se))) se <- rep(NA, length(coef))
     ## Print results
     cat("\n")
     cat("Call:\n")
     dput(x$call)
     cat("\n")
-    if (!is.null(x$coefficients)) {
+    if (!is.null(x$beta)) {
         tmp <- data.frame(coef, exp(coef), se,
                           z = coef/se, p = signif(1 - pchisq((coef/ se)^2, 1), digits - 1))
-        tmp.T <- data.frame(coef.T, exp(coef.T), se.T,
-                            z = coef.T/se.T, p = signif(1 - pchisq((coef.T/ se.T)^2, 1), digits - 1))
         dimnames(tmp) <- list(names(coef), c("coef", "exp(coef)", "se(coef)", "z", "Pr(>|z|)"))
-        dimnames(tmp.T) <- list(names(coef.T), c("coef", "exp(coef)", "se(coef)", "z", "Pr(>|z|)"))
-        cat("Failure time:")
-        cat("\n")
         printCoefmat(tmp, dig.tst=max(1, min(5, digits)))
-        cat("\n")
-        cat("Inverse truncation time:")
-        cat("\n")
-        printCoefmat(tmp.T, dig.tst=max(1, min(5, digits)))
     } else {cat("Null model")}
     cat("\n")
     invisible()

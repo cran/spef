@@ -5,7 +5,7 @@
 ##   doPanelFit.MPL
 ##   doPanelFit.MPLs
 ##   doPanelFit.MLs
-##   doPanelFit.SC
+##   doPanelFit.AMM
 ##   doPanelFit.EE.HSWc
 ##   doPanelFit.EE.HSWm
 ##   doPanelFit.EE.SWa
@@ -16,7 +16,7 @@
 ##   doPanelFit.AEEX.Impute
 ##   doPanelFit.AEE.Sandwich
 ##   doPanelFit.AEEX.Sandwich
-##   doPanelFit.SC.smBoot
+##   doPanelFit.AMM.smBoot
 ## Export functions :
 ##   panelReg
 
@@ -440,10 +440,10 @@ doPanelFit.MLs <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
 }
 
 ##############################################################################
-## Scale-Change model (SC), informative censoring
+## Scale-Change model (AMM), informative censoring
 ##############################################################################
 
-doPanelFit.SC <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
+doPanelFit.AMM <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
     id <- DF[,1]
     X <- as.matrix(DF[, -(1:3)])
     tij <- DF[,2]
@@ -486,7 +486,7 @@ doPanelFit.SC <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
 }
 
 ## smooth bootstrap for scale change model only
-doPanelFit.SC.smBoot <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
+doPanelFit.AMM.smBoot <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
     res <- doPanelFit(DF, panelMatrix, timeGrid, X, engine, NULL)
     id <- DF[,1]
     X <- as.matrix(DF[, -(1:3)])
@@ -542,7 +542,7 @@ doPanelFit.EE.HSWc <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
 }
 
 ################################################################################
-## Hu, Sun and Wei's method (HSWc), dependent observation and censoring times
+## Hu, Sun and Wei's method (HSWm), dependent observation and censoring times
 ## Implemented from Sun's book "U_{II}^M
 ################################################################################
 doPanelFit.EE.HSWm <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
@@ -751,7 +751,7 @@ doPanelFit.Engine.Bootstrap <- function(DF, panelMatrix, timeGrid, X, engine, st
         print("Warning: some bootstrap samples failed to converge")
         converged <- 1:R
     }
-    betaVar <- var(betaMatrix[converged, ], na.rm=TRUE)
+    betaVar <- var(betaMatrix[converged, ], na.rm = TRUE)
     betaSE <- sqrt(diag(as.matrix(betaVar)))
     baselineSE <- sd(baselineMatrix[converged, ], na.rm=TRUE)
     # 2.5% and 97.5% quantiles of baseline bootstrap estimates, 2*K
@@ -1040,7 +1040,7 @@ setClass("HWZ",
 setClass("MPL", contains="Engine")
 setClass("MPLs", contains="Engine")
 setClass("MLs", contains="Engine")
-setClass("SC", contains="Engine")
+setClass("AMM", contains="Engine")
 setClass("EE.HSWc", contains="Engine")
 setClass("EE.HSWm", contains="Engine")
 setClass("EE.SWa", contains="Engine")
@@ -1098,8 +1098,8 @@ setMethod("doPanelFit",
           doPanelFit.MLs)
 
 setMethod("doPanelFit",
-          signature(engine="SC", stdErr="NULL"),
-          doPanelFit.SC)
+          signature(engine="AMM", stdErr="NULL"),
+          doPanelFit.AMM)
 
 setMethod("doPanelFit",
           signature(engine="EE.HSWc", stdErr="NULL"),
@@ -1142,15 +1142,15 @@ setMethod("doPanelFit",
           doPanelFit.AEEX.Sandwich)
 
 setMethod("doPanelFit",
-          signature(engine="SC", stdErr="smBootstrap"),
-          doPanelFit.SC.smBoot)
+          signature(engine="AMM", stdErr="smBootstrap"),
+          doPanelFit.AMM.smBoot)
 
 ##############################################################################
 ## User's Main Function
 ##############################################################################
 
 panelReg <- function(formula, data,
-                     method=c("AEE", "AEEX", "HWZ", "MPL", "MPLs", "MLs", "SC",
+                     method=c("AEE", "AEEX", "HWZ", "MPL", "MPLs", "MLs", "AMM",
                               "EE.SWa", "EE.SWb", "EE.SWc", "EE.HSWc", "EE.HSWm"),
                      se = c("NULL", "smBootstrap", "Bootstrap", "Impute", "Sandwich"),
                      control = list()) {
