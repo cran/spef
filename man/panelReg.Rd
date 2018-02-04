@@ -19,7 +19,8 @@
 panelReg(formula, data,
          method=c("AEE", "AEEX", "HWZ", "MPL", "MPLs", "MLs", "AMM",
                   "EE.SWa", "EE.SWb", "EE.SWc", "EE.HSWc", "EE.HSWm"),
-         se=c("NULL", "smBootstrap", "Bootstrap", "Impute", "Sandwich"), control=list())
+         se=c("NULL", "smBootstrap", "Bootstrap", "Impute", "Sandwich"),
+         control=list())
 }
 \arguments{
   \item{formula}{
@@ -179,11 +180,15 @@ data(blaTum)
 formula <- PanelSurv(id, time, count) ~ num + size + treatment
 
 panelReg(formula, data = blaTum, method = "AEE", se = "Sandwich")
-panelReg(formula, data = blaTum, method = "AEEX", se = "Impute", control = list(a = 0.1, R = 30))
-panelReg(formula, data = blaTum, method = "HWZ", se = "Bootstrap", control = list(R = 30))
+panelReg(formula, data = blaTum, method = "AEEX", se = "Impute",
+         control = list(a = 0.1, R = 30))
+panelReg(formula, data = blaTum, method = "HWZ", se = "Bootstrap",
+         control = list(R = 30))
 panelReg(formula, data = blaTum, method = "MLs", se = "NULL")
-panelReg(formula, data = blaTum, method = "EE.SWa", se = "Bootstrap", control = list(R = 30))
-panelReg(formula, data = blaTum, method = "EE.HSWc", se = "Bootstrap", control = list(R = 30))
+panelReg(formula, data = blaTum, method = "EE.SWa", se = "Bootstrap",
+         control = list(R = 30))
+panelReg(formula, data = blaTum, method = "EE.HSWc", se = "Bootstrap",
+         control = list(R = 30))
 }
 }
 \keyword{survival}

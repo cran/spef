@@ -47,7 +47,7 @@ plot.isplineFun <- function(x, xlab="x", ylab="f(x)", main=NULL, type="l", ...) 
     xVal <- seq(bd[1], bd[2], length=101)
     yVal <- x(xVal)
     plot(xVal, yVal, xlab=xlab, ylab=ylab, main=main, type=type, ...)
-    abline(v=attr(x, "knots"), lty="dotted", col="red")
+    ## abline(v=attr(x, "knots"), lty="dotted", col="red")
 }
 
 ##############################################################################

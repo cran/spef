@@ -12,7 +12,7 @@
 ##   doPanelFit.EE.SWb
 ##   doPanelFit.EE.SWc
 ##   doPanelFit.Engine.Bootstrap
-##   doPanelFit.AEE.Impute
+##   doPanelFit.AE.Impute
 ##   doPanelFit.AEEX.Impute
 ##   doPanelFit.AEE.Sandwich
 ##   doPanelFit.AEEX.Sandwich
@@ -744,9 +744,9 @@ doPanelFit.Engine.Bootstrap <- function(DF, panelMatrix, timeGrid, X, engine, st
         convergence[i] <- res2$convergence
     }
     converged <- which(convergence == 0)
-    if (sum(convergence != 0) > 0) ## warning("Some bootstrap samples failed to converge")
-        print("Warning: Some bootstrap samples failed to converge")
-    if (all(convergence != 0) || sum(convergence == 0) == 1) {
+    ## if (sum(convergence != 0) > 0) ## warning("Some bootstrap samples failed to converge")
+    ##     print("Warning: Some bootstrap samples failed to converge")
+    if (sum(convergence != 0) > 0 || all(convergence != 0) || sum(convergence == 0) == 1) {
         ## warning("Some bootstrap samples failed to converge")
         print("Warning: some bootstrap samples failed to converge")
         converged <- 1:R

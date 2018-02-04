@@ -8,8 +8,8 @@
 
 ##############################################################################
 doPanelFitPlot.stepfun <- function(baseline, timeGrid, baselineSE, ...) {
-    plot(baseline, do.points=FALSE, xlab="", ylab = "",
-         main="Cumulative Baseline Mean", ...)
+    plot(baseline, do.points=FALSE, xlab="", ylab = "", ...)
+    ##        main="Cumulative Baseline Mean", ...)
     title(xlab = "Time", ylab = expression(hat(Lambda[0])(t)), line = 2, cex.lab = 1)
 }
 
@@ -26,34 +26,34 @@ doPanelFitPlot.stepfun.se <- function(baseline, timeGrid, baselineSE,
     }
     lowFun <- stepfun(timeGrid, c(0, low))
     highFun <- stepfun(timeGrid, c(0, high))
-    plot(highFun, do.points=FALSE, lty=2, xlab="", ylab = "", main="Cumulative Baseline Mean")
+    plot(highFun, do.points = FALSE, lty = 2, xlab = "", ylab = "", ...)
+    ## main = "Cumulative Baseline Mean")
     title(xlab = "Time", ylab = expression(hat(Lambda[0])(t)), line = 2, cex.lab = 1)
-    plot(baseline, do.points=FALSE, add=TRUE, ...)
-    plot(lowFun, do.points=FALSE, lty=2, add=TRUE)
+    plot(baseline, do.points = FALSE, add = TRUE, ...)
+    plot(lowFun, do.points = FALSE, lty=2, add = TRUE)
 }
 
 ##############################################################################
 doPanelFitPlot.isplineFun <- function(baseline, timeGrid, baselineSE, ...) {
-    plot(baseline, xlab="", ylab = "", main="Cumulative Baseline Mean (I-Spline)", ...)
+    plot(baseline, xlab = "", ylab = "", ...)
+    ## main = "Cumulative Baseline Mean (I-Spline)", ...)
     title(xlab = "Time", ylab = expression(hat(Lambda[0])(t)), line = 2, cex.lab = 1)    
 }
 
 ##############################################################################
 doPanelFitPlot.isplineFun.se <- function(baseline, timeGrid, baselineSE, ...) {
     y <- baseline(timeGrid)
-
     low <- y * exp(- 1.96 * baselineSE / y)
     high <- y * exp(1.96 * baselineSE / y)
-
-    plot(baseline, xlab="", ylab = "", main="Cumulative Baseline Mean (I-Spline)",
-         ylim=c(0, 1.05 * max(high)), ...)
+    plot(baseline, xlab = "", ylab = "", ## main = "Cumulative Baseline Mean (I-Spline)",
+         ylim = c(0, 1.05 * max(high)), ...)
     title(xlab = "Time", ylab = expression(hat(Lambda[0])(t)), line = 2, cex.lab = 1)
     points(timeGrid, high, type="l", lty=2)
     points(timeGrid, low, type="l", lty=2)
 }
 
 ##############################################################################
-# Method dispatch
+## Method dispatch
 ##############################################################################
 setGeneric("doPanelFitPlot",
            function(baseline, timeGrid, baselineSE, baselineMat, method, ...) {
@@ -68,7 +68,7 @@ setMethod("doPanelFitPlot",
 
 setMethod("doPanelFitPlot",
           signature(baseline="stepfun", baselineSE="numeric"),
-          doPanelFitPlot.stepfun.se)
+          doPanelFitPlot.stepfun) ## doPanelFitPlot.stepfun.se)
 
 setOldClass(c("isplineFun", "function"))
 
@@ -78,19 +78,19 @@ setMethod("doPanelFitPlot",
 
 setMethod("doPanelFitPlot",
           signature(baseline="isplineFun", baselineSE="numeric"),
-          doPanelFitPlot.isplineFun.se)
+          doPanelFitPlot.isplineFun) ## doPanelFitPlot.isplineFun.se)
 
 ##############################################################################
-# Plot a PanelReg object
+## Plot a PanelReg object
 ##############################################################################
 plot.panelReg <- function(x, ...) {
-    doPanelFitPlot(baseline=x$baseline, timeGrid=x$timeGrid,
-                   baselineSE=x$baselineSE, baselineMat=x$baselineMat,
-                   method=x$method,...)
+    doPanelFitPlot(baseline = x$baseline, timeGrid = x$timeGrid,
+                   baselineSE = x$baselineSE, baselineMat = x$baselineMat,
+                   method = x$method,...)
 }
 
 ##############################################################################
-# Print a panelReg object
+## Print a panelReg object
 ##############################################################################
 print.panelReg <- function(x, digits=max(options()$digits - 4, 3), ...) {
     savedig <- options(digits = digits)
@@ -114,7 +114,7 @@ print.panelReg <- function(x, digits=max(options()$digits - 4, 3), ...) {
 }
 
 ##############################################################################
-# Print coef(panelReg)
+## Print coef(panelReg)
 ##############################################################################
 coef.panelReg <- function(object, ...) {
     if (class(object) != "panelReg") stop("Most be panelReg class")
@@ -123,7 +123,7 @@ coef.panelReg <- function(object, ...) {
 }
 
 ##############################################################################
-# Print vcov(panelReg)
+## Print vcov(panelReg)
 ##############################################################################
 vcov.panelReg <- function(object, ...) {
     if (class(object) != "panelReg") stop("Most be panelReg class")

@@ -29,7 +29,6 @@
 \examples{
 data(skiTum)
 library(ggplot2)
-data(skiTum)
 skiTum$dfmo <- factor(skiTum$dfmo, levels = c(1, 0), labels = c("placebo", "DFMO"))
 ggplot(skiTum, aes(time, id, height = 2, width = 25)) +
     geom_tile(aes(fill = count)) + theme_bw() +
@@ -38,4 +37,3 @@ ggplot(skiTum, aes(time, id, height = 2, width = 25)) +
     scale_x_continuous(breaks = seq(0, 1800, 100)) + xlab("Time in days")
 }
 \keyword{survival}
-\keyword{panel count}
