@@ -346,8 +346,8 @@ doPanelFit.MPLs <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
     for (i in 1:engine@maxIter) {
         rawXB <- c(rawX %*% beta)
         alpha <- optim(alpha, logPseudolike, rawXB=rawXB,
-                       method="L-BFGS-B", lower=lower,
-                       control=list(fnscale=-1))$par
+                       method = "L-BFGS-B", lower=lower,
+                       control = list(fnscale=-1))$par
         Lambda <- c(ispMat %*% alpha)
         betaPre <- beta
         if (ncol(X) == 1) {
@@ -450,7 +450,7 @@ doPanelFit.AMM <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
     mt <- DF[,3]
     cluster <- as.numeric(unlist(lapply(split(id, id), function(x) 1:length(x))))
     fit <- dfsane(engine@betaInit, pcEq, X = X, tij = tij, mt = mt,
-                  cluster = cluster, id = id, conv.tol = engine@absTol,
+                  cluster = cluster, id = id, conv.tol = engine@absTol, adjust = engine@adjust,
                   alertConvergence = FALSE, quiet = TRUE,
                   control = list(NM = FALSE, M = 100, noimp = 50,
                                  tol = engine@absTol, trace = FALSE))
@@ -472,10 +472,7 @@ doPanelFit.AMM <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) {
     if (max(Ft) > 1e2)
         Ft <- getLam(sT, cluster, id, mt, conv.tol = .01)
     mi <- unlist(lapply(split(mt, id), sum))
-    Ly <- mean(mi / Ft[cumsum(unlist(lapply(split(tij, id), which.max)))], na.rm = TRUE)
-    if (Ly > 1e2)
-        Ly <- mean((mi + 0.02) / (Ft[cumsum(unlist(lapply(split(tij, id), which.max)))] + 0.02),
-                   na.rm = TRUE)
+    Ly <- mean((mi + engine@adjust) / (Ft[cumsum(unlist(lapply(split(tij, id), which.max)))] + engine@adjust), na.rm = TRUE)
     yi <- unlist(lapply(split(exp(sT), id), max))
     lamSm <- sm.regression(exp(sT), Ft, method = "cv", eval.points = exp(sT), display = "none")
     ## baseline <- with(lamSm, approx(eval.points, estimate, timeGrid, "constant", 50, 0, 1)$y)
@@ -493,7 +490,7 @@ doPanelFit.AMM.smBoot <- function(DF, panelMatrix, timeGrid, X, engine, stdErr) 
     tij <- DF[,2]
     mt <- DF[,3]
     cluster <- as.numeric(unlist(lapply(split(id, id), function(x) 1:length(x))))
-    bt <- getBtInf(X, tij, mt, cluster, id, res$beta, stdErr@R, res$lamSm$data, method = "smooth")
+    bt <- getBtInf(X, tij, mt, cluster, id, res$beta, stdErr@R, res$lamSm$data, method = "smooth", adjust = engine@adjust)
     ## converged <- -which(rowSums(bt$lami) == 0 |rowSums(bt$lami) > 1e5)
     sT <- exp(tij * exp(X %*% res$beta))
     bt$lami <- bt$lami[,order(sT)]
@@ -744,12 +741,10 @@ doPanelFit.Engine.Bootstrap <- function(DF, panelMatrix, timeGrid, X, engine, st
         convergence[i] <- res2$convergence
     }
     converged <- which(convergence == 0)
-    ## if (sum(convergence != 0) > 0) ## warning("Some bootstrap samples failed to converge")
-    ##     print("Warning: Some bootstrap samples failed to converge")
     if (sum(convergence != 0) > 0 || all(convergence != 0) || sum(convergence == 0) == 1) {
-        ## warning("Some bootstrap samples failed to converge")
-        print("Warning: some bootstrap samples failed to converge")
-        converged <- 1:R
+        ## print("Warning: some bootstrap samples failed to converge")
+        print(paste("Warning: SE based on", sum(convergence == 0), "converged bootstrap samples"))
+        ## converged <- 1:R
     }
     betaVar <- var(betaMatrix[converged, ], na.rm = TRUE)
     betaSE <- sqrt(diag(as.matrix(betaVar)))
@@ -1023,24 +1018,27 @@ setClass("AEE",
          representation(),
          prototype(),
          contains="Engine")
+
 setClass("AEEX",
          representation(a="numeric"),
-         prototype(maxIter=500, a=0.1),
+         prototype(maxIter = 500, a = 0.1),
          contains="Engine")
+
+setClass("AMM",
+         representation(adjust="numeric"),
+         prototype(adjust = 0.1),
+         contains="Engine")
+
 setClass("HWZ",
          representation(unitWeight="logical", adjust="character"),
-         prototype(maxIter=150, absTol=1e-4,
-                   unitWeight=TRUE, adjust="W"),
+         prototype(unitWeight=TRUE, adjust="W"),
          validity=function(object) {
-             object@adjust <- match.arg(object@adjust,
-                                        choices=c("W", "H"))
-             return(TRUE)
-         },
-         contains="Engine")
+             object@adjust <- match.arg(object@adjust, choices=c("W", "H"))
+             return(TRUE)}, contains="Engine")
+
 setClass("MPL", contains="Engine")
 setClass("MPLs", contains="Engine")
 setClass("MLs", contains="Engine")
-setClass("AMM", contains="Engine")
 setClass("EE.HSWc", contains="Engine")
 setClass("EE.HSWm", contains="Engine")
 setClass("EE.SWa", contains="Engine")
@@ -1205,7 +1203,7 @@ panelReg <- function(formula, data,
 ## Required functions for pcReg
 ##############################################################################
 
-pcEq <- function(alpha, X, tij, mt, cluster, id, conv.tol = 1e-2) {
+pcEq <- function(alpha, X, tij, mt, cluster, id, conv.tol = 1e-2, adjust = 0.02) {
     yi <- unlist(lapply(split(tij, id), max))
     yid <- cumsum(unlist(lapply(split(id, id), length)))
     mi <- unlist(lapply(split(mt, id), sum))
@@ -1216,14 +1214,8 @@ pcEq <- function(alpha, X, tij, mt, cluster, id, conv.tol = 1e-2) {
     if (max(abs(exp(sT))) == Inf || all(exp(sT) == 0))
         Ft <- getLam(sT, cluster, id, mt, conv.tol = conv.tol)
     else Ft <- getLam(exp(sT), cluster, id, mt, conv.tol = conv.tol)
-    ## tmp <- Ft[cumsum(unlist(lapply(split(tij, id), which.max)))]
-    ## mi[which(tmp < .01)] <- mi[which(tmp < .01)] + .02
-    ## tmp[which(tmp < .01)] <- tmp[which(tmp < .01)] + .02
-    ## Ly <- mean(mi / tmp, na.rm = TRUE)
-    Ly <- mean(mi / Ft[cumsum(unlist(lapply(split(tij, id), which.max)))], na.rm = TRUE)
-    if (Ly > 1e5) 
-        Ly <- mean((mi + .02) / (Ft[cumsum(unlist(lapply(split(tij, id), which.max)))] + .02),
-                   na.rm = TRUE)
+    Ly <- mean((mi + adjust) / (Ft[cumsum(unlist(lapply(split(tij, id), which.max)))] + adjust),
+               na.rm = TRUE)
     res <- vector("double", p)
     res <- .C("alphaEq1", as.double(X[which(cluster == 1),]), as.double(Ft[yid] * Ly),
               as.integer(mi), as.integer(n), as.integer(p),
@@ -1286,7 +1278,7 @@ lam.loglik <- function(f, ordt, tij, id, mt, aijk, bik) {
 }
 
 
-getBtInf <- function(X, tij, mt, cluster, id, a, B, lamSm, conv.tol = 1e-2, method = "bootstrap") {
+getBtInf <- function(X, tij, mt, cluster, id, a, B, lamSm, conv.tol = 1e-2, method = "bootstrap", adjust = 0.02) {
     covmat <- matrix(NA, ncol = ncol(X), nrow = B)
     Lyi <- rep(NA, B)
     lami <- matrix(NA, ncol = length(tij), nrow = B)
@@ -1375,10 +1367,8 @@ getBtInf <- function(X, tij, mt, cluster, id, a, B, lamSm, conv.tol = 1e-2, meth
         if (max(Fti) > 1e2)
             Fti <- getLam(sTi, clusteri, idi, mti, conv.tol = 0.01)
         mii <- unlist(lapply(split(mti, idi), sum))
-        Lyi[k] <- mean(mii / Fti[cumsum(unlist(lapply(split(tiji, idi), which.max)))], na.rm = TRUE)
-        if (Lyi[k] == Inf) 
-            Lyi[k] <- mean((mii + 0.02) / (Fti[cumsum(unlist(lapply(split(tiji, idi), which.max)))] + 0.02),
-                           na.rm = TRUE)
+        Lyi[k] <- mean((mii + adjust) / (Fti[cumsum(unlist(lapply(split(tiji, idi), which.max)))] + adjust),
+                       na.rm = TRUE)
         lami[k,] <- approx(exp(sTi), Fti, exp(sT), method = "constant", yleft = 0, yright = 1)$y
     }
     list(covmat = covmat, Lyi = Lyi, lami = lami)

@@ -1,3 +1,7 @@
+2018-02-05 Steven Chiou <schiou@utdallas.edu>
+	* Add adjust to AMM engine for (mi + adjust) / (Lambda + adjust)
+2018-02-02 Steven Chiou <schiou@utdallas.edu>
+	* Jun helped on fixing plot margins
 2017-08-12 Steven Chiou <schiou@utdallas.edu>
 	* Removed skiTum and added a simulated replacement
 	* Fix some bugs on display

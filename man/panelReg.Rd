@@ -140,15 +140,12 @@ panelReg(formula, data,
   \code{panelReg.object} for details.
 }
 \references{
-  Sun, J. and Wei, L. J. (2000). Regression analysis of panel count
-  data with covariates-dependent observation and cesoring
-  times. \emph{Journal of the Royal Statistical Society, Series B:
-  Statistical Methodology}, \bold{62}(2):293--302.
-
-  Zhang, Y. (2002). A Semiparametric pseudolikelihood estimation method
-  for panel count data. \emph{Biometrika} \bold{89}(1), 39--48.
-
-  Huang, C., Wang, M., and Zhang, Y. (2006). Analysing panel count data
+  Chiou, S., Xu, G., Yan, J., and Huang, C.-Y. (2017). Semiparametric
+  estimation of the accelerated mean model with panel count data under
+  informative examination times. \emph{Biometrics}, to appear.
+  <doi: 10.1111/biom.12840>.
+  
+  Huang, C.-Y., Wang, M., and Zhang, Y. (2006). Analysing panel count data
   with informative observation times. \emph{Biometrika} \bold{93}(4),
   763--776.
 
@@ -160,13 +157,21 @@ panelReg(formula, data,
   function with panel count data using monotone polynomial
   splines. \emph{Biometrika} \bold{94}(3), 705--718.
 
+  Sun, J. and Wei, L. J. (2000). Regression analysis of panel count
+  data with covariates-dependent observation and cesoring
+  times. \emph{Journal of the Royal Statistical Society, Series B:
+  Statistical Methodology}, \bold{62}(2):293--302.
+
   Wang, X. and Yan, J. (2011). Fitting semiparametric regressions for panel
   count survival data with an R package spef. \emph{Computer methods and
     programs in biomedicine} \bold{104}(2), 278--285.
   
   Wang, X. and Yan, J. (2013). Augmented estimating equations for
   semiparametric panel count regression with informative observation
-  times and censoring time. \emph{Statistica Sinica}, 359--381.  
+  times and censoring time. \emph{Statistica Sinica}, 359--381.
+
+  Zhang, Y. (2002). A Semiparametric pseudolikelihood estimation method
+  for panel count data. \emph{Biometrika} \bold{89}(1), 39--48.
 }
 
 \seealso{

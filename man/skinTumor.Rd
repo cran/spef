@@ -27,8 +27,9 @@
 }
 \references{
   Chiou, S., Xu, G., Yan, J., and Huang, C.-Y. (2017). Semiparametric
-  estimation of the accelerated means model with panel count data with
-  informative examination times. \emph{unpublished manuscript}
+  estimation of the accelerated mean model with panel count data under
+  informative examination times. \emph{Biometrics}, to appear.
+  <doi: 10.1111/biom.12840>.
 
   Sun, J. and Zhao, X. (2013). Statistical Analysis of Panel Count
   Data. New York: Springer.
