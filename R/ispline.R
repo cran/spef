@@ -42,6 +42,7 @@ isplineFun <- function(coef, bspBasis) {
 ##############################################################################
 # plot I-Spline function
 ##############################################################################
+#' @export
 plot.isplineFun <- function(x, xlab="x", ylab="f(x)", main=NULL, type="l", ...) {
     bd <- attr(x, "Boundary.knots")
     xVal <- seq(bd[1], bd[2], length=101)
