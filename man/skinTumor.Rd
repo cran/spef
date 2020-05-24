@@ -37,7 +37,6 @@ ggplot(skinTumor, aes(time, id, width = 25, height = 2)) +
     scale_fill_gradient(low = "grey", high = "black") +
     scale_x_continuous(breaks = seq(0, 2000, 200)) +
     labs(fill = "Count") + xlab("Time in days")
-
 }
 \references{
 Chiou, S., Xu, G., Yan, J., and Huang, C.-Y. (2017).
